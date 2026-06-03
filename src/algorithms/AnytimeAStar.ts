@@ -8,9 +8,11 @@ import { BinaryHeap } from '../ds/BinaryHeap'
 import { reconstructPath } from '../services/misc'
 
 /**
- * Naive A* implementation that yields either zero or one path exactly.
+ * A* implementation that yields each newly found best route as it occurs.
+ * This makes it robust when given a heuristic that isn't consistent and/or
+ * admissible.
  */
-export const aStar: Algorithm = function * (
+export const anytimeAStar: Algorithm = function * (
   graph: Graph,
   services: InstanceRegistry<SearchService>,
   source: Vertex,
@@ -33,19 +35,17 @@ export const aStar: Algorithm = function * (
 
     if (vertex === goal) {
       yield reconstructPath(cameFrom, goal)
-      return
-    }
-
-    for (const nextVertex of vertex.neighbors) {
-      const tentativeCost = currentCost + g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
-
-      if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
-        gScores.set(nextVertex, tentativeCost)
-        cameFrom.set(nextVertex, vertex)
-        openSet.insert(nextVertex, tentativeCost + epsilon * h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y))
+    } else {
+      for (const nextVertex of vertex.neighbors) {
+        const tentativeCost = currentCost + g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
+        if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
+          gScores.set(nextVertex, tentativeCost)
+          cameFrom.set(nextVertex, vertex)
+          openSet.insert(nextVertex, tentativeCost + epsilon * h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y))
+        }
       }
     }
   }
 }
 
-aStar.availableOpts = new Set(['epsilon'])
+anytimeAStar.availableOpts = new Set(['epsilon'])

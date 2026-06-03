@@ -27,6 +27,11 @@ export class BinaryHeap<T> {
     return (this.heap[0] as Node<T>)[0]
   }
 
+  peekPriority (): number | null {
+    if (this.heap.length === 0) return null
+    return (this.heap[0] as Node<T>)[1]
+  }
+
   get size (): number {
     return this.heap.length
   }

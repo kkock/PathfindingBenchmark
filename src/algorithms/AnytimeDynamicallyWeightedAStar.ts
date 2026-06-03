@@ -8,9 +8,11 @@ import { BinaryHeap } from '../ds/BinaryHeap'
 import { reconstructPath } from '../services/misc'
 
 /**
- * Naive A* implementation that yields either zero or one path exactly.
+ * Anytime dynamically weighted A* implementation.
+ * Note that it uses epsilon in a modified way, hence a low-quality epsilon
+ * does not universally have the same effect as a low-quality heuristic.
  */
-export const aStar: Algorithm = function * (
+export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
   graph: Graph,
   services: InstanceRegistry<SearchService>,
   source: Vertex,
@@ -19,17 +21,21 @@ export const aStar: Algorithm = function * (
 ): Generator<Vertex[], undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
-  const gScores = new Map<Vertex, number>()
+  const N = h.get(graph, source.x, source.y, goal.x, goal.y)
   const epsilon: number = opts['epsilon'] ?? 1
+  const gScores = new Map<Vertex, number>()
+  const dScores = new Map<Vertex, number>()
 
   const cameFrom = new Map<Vertex, Vertex>()
   const openSet = new BinaryHeap<Vertex>()
-  openSet.insert(source, epsilon * h.get(graph, source.x, source.y, goal.x, goal.y))
+  openSet.insert(source, h.get(graph, source.x, source.y, goal.x, goal.y))
   gScores.set(source, 0)
+  dScores.set(source, 0)
 
   while (openSet.size > 0) {
     const vertex = openSet.pop() as Vertex
     const currentCost = gScores.get(vertex) as number
+    const currentDepth = dScores.get(vertex) as number
 
     if (vertex === goal) {
       yield reconstructPath(cameFrom, goal)
@@ -40,12 +46,18 @@ export const aStar: Algorithm = function * (
       const tentativeCost = currentCost + g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
 
       if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
+        const hScore = h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y)
+        const dScore = currentDepth + 1
+        const wScore = dScore <= N ? 1 - dScore / N : 0
+        const fScore = tentativeCost + hScore * (1 + epsilon * wScore)
+
         gScores.set(nextVertex, tentativeCost)
+        dScores.set(nextVertex, dScore)
         cameFrom.set(nextVertex, vertex)
-        openSet.insert(nextVertex, tentativeCost + epsilon * h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y))
+        openSet.insert(nextVertex, fScore)
       }
     }
   }
 }
 
-aStar.availableOpts = new Set(['epsilon'])
+anytimeDynamicallyWeightedAStar.availableOpts = new Set(['epsilon'])

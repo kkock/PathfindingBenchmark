@@ -1,3 +1,3 @@
-export interface Path {
+/* export interface Path {
   parent: Path | null
-}
+} */
