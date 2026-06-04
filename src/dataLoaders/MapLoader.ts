@@ -10,8 +10,8 @@ import { Graph, Vertex } from '../Graph'
 
 export function parseMap (source: string): string[][] | null {
   const lines = source.trim().split(/\r\n|\r|\n/)
-  if (lines[0] == null || !/^type[\s]octile$/.test(lines[0])) return null
-  if (lines[3] == null || !/^map$/.test(lines[0])) return null
+  if (lines[0] == null || !/^type[\s]octile$/.test(lines[0])) throw new Error('Missing "type octile" on line 1')
+  if (lines[3] == null || !/^map$/.test(lines[3])) throw new Error('Missing "map" on line 4')
 
   /* const [height] = parse(lines[1], /^height[\s]+([\d]+)$/)
   const [width] = parse(lines[2], /^width[\s]+([\d]+)$/) */
@@ -21,7 +21,7 @@ export function parseMap (source: string): string[][] | null {
   return map
 }
 
-function isPassable (str: string, opts: { passable: Set<string>, impassable?: undefined } | { passable?: undefined, impassable: Set<string> }): boolean {
+export function isPassable (str: string, opts: { passable: Set<string>, impassable?: undefined } | { passable?: undefined, impassable: Set<string> }): boolean {
   if (opts.passable != null) {
     return opts.passable.has(str)
   } else {

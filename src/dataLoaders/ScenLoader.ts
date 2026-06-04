@@ -8,6 +8,7 @@ export interface ScenDef {
 }
 
 export function parseScenLine (source: string): ScenDef {
+  const lineArgs = source.trim().split(/\s+/)
   const [
     bucket,
     map,
@@ -15,7 +16,9 @@ export function parseScenLine (source: string): ScenDef {
     startX, startY,
     goalX, goalY,
     optimalLength
-  ] = source.trim().split(/\s+/)
+  ] = lineArgs
+
+  if (lineArgs.length !== 9) throw new Error(`Expected 9 arguments, but received ${lineArgs.length}`)
 
   return {
     bucket: Number(bucket),
@@ -29,6 +32,6 @@ export function parseScenLine (source: string): ScenDef {
 
 export function parseScen (source: string): ScenDef[] | null {
   const lines = source.trim().split(/\r\n|\r|\n/)
-  if (lines[0] == null || !/^version[\s]+\d+(?:\.\d+)?$/.test(lines[0])) return null
+  if (lines[0] == null || !/^version[\s]+\d+(?:\.\d+)?$/.test(lines[0])) throw new Error('Incorrect version')
   return lines.slice(1).map(parseScenLine)
 }

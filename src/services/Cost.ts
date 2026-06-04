@@ -24,6 +24,7 @@ export const euclideanCost = new Cost((_, ...args) => euclideanDistance(...args)
  * corner the movement passes over, multiplied by the distance.
  * Impassable tiles are `@` in guards, but since valid neighbors are
  * calculated ahead of time, no cost call should ever result in `NaN`.
+ * @see https://github.com/Sajjad-moghadam/Guards
  */
 export const guardsCost = new Cost((graph, x1, y1, x2, y2) => {
   const vertices = x1 === x2 || y1 === y2

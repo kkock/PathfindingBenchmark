@@ -1,92 +1,63 @@
 import type { Algorithm, SearchService } from '../Algorithm'
-import { Graph, Vertex } from '../Graph'
+import type { Graph, Vertex } from '../Graph'
 import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
 import { Heuristic } from '../services/Heuristic'
 import { BinaryHeap } from '../ds/BinaryHeap'
-import { reconstructPath } from '../services/misc'
 
-/**
- * Note that the lattice is reversed, so it starts at the goal of the search.
- */
-class LatticeNode {
-  public readonly parents: LatticeNode[] = []
-  // public readonly children: LatticeNode[] = []
-  public readonly children = new Map<LatticeNode, number>()
+class SearchNode {
   public readonly vertex: Vertex
-  public willExpand: boolean = true
-
-  // private readonly _costCache: number | null = null
-  public bestChildTotalCost: number | null = null
-  private bestChild: LatticeNode | null = null
-
-  public h: number | null = null
-  public g: number | null = null
+  public children = new Set<SearchNode>()
+  public parents  = new Set<SearchNode>()
+  public heuristic: number  | undefined
+  private expandState = false
+  public bestChild: SearchNode | undefined
+  public bestChildTotalCost: number | undefined
+  public costs = new Map<SearchNode, number>()
 
   constructor (vertex: Vertex) {
     this.vertex = vertex
   }
 
-  get totalCost (): number {
-    const ownCost = this.getOwnCost()
-    return ownCost + this.getBestChildTotalCost()
+  setExpandState (expandState: boolean): void {
+    this.expandState = expandState
   }
 
-  private getOwnCost (): number {
-    if (this.bestChild == null) {
-      return 0
-    } else {
-      return this.children.get(this.getBestChild() as LatticeNode) as number
-    }
-  }
-
-  private getBestChild (): LatticeNode | null { return this.bestChild }
-
-  /**
-   * @returns a list of dirty nodes that may need to be re-added to the open
-   * set.
-   */
-  addChild (node: LatticeNode, segmentCost: number): LatticeNode[] {
-    const dirtyNodes: LatticeNode[] = []
-    this.children.set(node, segmentCost)
-    const newChildTotalCost = node.totalCost
-    if (this.bestChildTotalCost == null || this.bestChildTotalCost > newChildTotalCost) {
-      this.bestChildTotalCost = newChildTotalCost
-      this.bestChild = node
-      this.propagateCostChange(dirtyNodes)
-    }
-    node.parents.push(this)
-    return dirtyNodes
-  }
-
-  private propagateCostChange (dirtyNodes: LatticeNode[]): void {
-    const totalNodeCost = this.totalCost
-    for (const parent of this.parents) {
-      if (parent.bestChildTotalCost as number > totalNodeCost) {
-        parent.bestChildTotalCost = totalNodeCost
-        parent.bestChild = this
-        parent.propagateCostChange(dirtyNodes)
-        dirtyNodes.push(this)
-      }
-    }
+  getExpandState (): boolean {
+    return this.expandState
   }
 
   getBestChildTotalCost (): number {
     return this.bestChildTotalCost == null ? 0 : this.bestChildTotalCost
   }
 
-  /**
-   * Clears memory by allowing irrelevant parts of the lattice to be garbage
-   * collected.
-   */
-  clean (): void {
-    const bestChild = this.getBestChild()
-    if (bestChild != null) {
-      this.children.clear()
-      bestChild.clean()
-    }
+  getTotalCost (): number {
+    return this.bestChildTotalCost ?? Infinity
   }
+
+  getEdgeCost (graph: Graph, costGetter: Cost, child: SearchNode): number  {
+    if (!this.costs.has(child)) {
+      this.costs.set(child, costGetter.get(graph,
+          this.vertex.x,
+          this.vertex.y,
+          child.vertex.x,
+          child.vertex.y
+      ))
+    }
+
+    return this.costs.get(child) as number 
+  }
+}
+
+function reconstructPath (sourceNode: SearchNode): Vertex[] {
+  const path = [sourceNode.vertex]
+  let node = sourceNode
+  while (node.bestChild != null) {
+    node = node.bestChild
+    path.unshift(node.vertex)
+  }
+  return path
 }
 
 export const latticeAStar: Algorithm = function * (
@@ -98,54 +69,76 @@ export const latticeAStar: Algorithm = function * (
 ): Generator<Vertex[], undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
-  const gScores = new Map<Vertex, number>()
-  const epsilon: number = opts['epsilon'] ?? 1
+  const openSet = new BinaryHeap<SearchNode>()
+  const nodes = new Map<Vertex, SearchNode>()
+  let bestSolutionCost = Infinity
 
-  const sourceNode = new LatticeNode(source)
-  sourceNode.willExpand = true
-
-  const goalNode = new LatticeNode(goal)
-  goalNode.willExpand = true
-  goalNode.bestChildTotalCost = Infinity
-
-  // const latticeNodes = new Map<Vertex, LatticeNode>()
-  const openSet = new BinaryHeap<LatticeNode>()
-
-  function addToOpen (node: LatticeNode): void {
-    const vertex = node.vertex
-    if (!node.willExpand) {
-      if (node.h == null) node.h = epsilon * h.get(graph, vertex.x, vertex.y, goal.x, goal.y)
-      if (node.h + node.totalCost < goalNode.totalCost) {
-        node.willExpand = true
-        openSet.insert(node, node.h)
+  function addToOpenSet (node: SearchNode) {
+    if (!node.getExpandState()) {
+      if (node.heuristic == null) {
+        node.heuristic = h.get(graph, node.vertex.x, node.vertex.y, goal.x, goal.y)
+      }
+      if (node.heuristic + node.getTotalCost() < bestSolutionCost) {
+        node.setExpandState(true);
+        openSet.insert(node, node.heuristic);
       }
     }
   }
 
-  openSet.insert(sourceNode, epsilon * h.get(graph, source.x, source.y, goal.x, goal.y))
-  gScores.set(source, 0)
+  function addChild (parent: SearchNode, child: SearchNode):void {
+    parent.children.add(child)
+    child.parents.add(parent)
+
+    let tentativeCost = parent.getEdgeCost(graph, g, child) + child.getTotalCost()
+    if (parent.bestChildTotalCost == null || tentativeCost < parent.bestChildTotalCost) {
+      parent.bestChildTotalCost = tentativeCost
+      parent.bestChild = child
+      propagateCostChange(parent)
+    }
+  }
+
+  function propagateCostChange (node: SearchNode) {
+    let totalNodeCost = node.getTotalCost()
+    for (const parent of node.parents) {
+      let tentativeCost = parent.getEdgeCost(graph, g, node) + totalNodeCost
+      if (parent.bestChildTotalCost == null || tentativeCost < parent.bestChildTotalCost) {
+        parent.bestChildTotalCost = tentativeCost
+        parent.bestChild = node
+        propagateCostChange(parent)
+        addToOpenSet(node)
+      }
+    }
+  }
+
+  const goalNode = new SearchNode(goal)
+  nodes.set(goal, goalNode)
+  goalNode.bestChildTotalCost = Infinity
+
+  const sourceNode = new SearchNode(source)
+  nodes.set(source, sourceNode)
+  sourceNode.bestChildTotalCost = 0
+  addToOpenSet(sourceNode)
 
   while (openSet.size > 0) {
-    const node = openSet.pop() as LatticeNode
-    const vertex = node.vertex
-    const currentCost = gScores.get(vertex) as number
-
-    /* if (node.vertex === goal) {
-      yield reconstructPath(cameFrom, goal)
-    } else { */
-    for (const nextVertex of vertex.neighbors) {
-      if (!latticeNodes.has(nextVertex)) latticeNodes.set(nextVertex, new LatticeNode(nextVertex))
-      const nextNode = latticeNodes.get(nextVertex) as LatticeNode
-      const tentativeCost = currentCost + g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
-
-      /* if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
-          gScores.set(nextVertex, tentativeCost)
-          cameFrom.set(nextVertex, vertex)
-          openSet.insert(nextVertex, tentativeCost + epsilon * h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y))
-        } */
-      // }
+    const node = openSet.pop() as SearchNode
+    for (const nextVertex of node.vertex.neighbors) {
+      if (!nodes.has(nextVertex)) nodes.set(nextVertex, new SearchNode(nextVertex))
+      const nextNode = nodes.get(nextVertex) as SearchNode
+      
+      nextNode.setExpandState(true)
+      addChild(nextNode, node)
+      if (nextNode === goalNode) {
+        const goalCost = nextNode.getTotalCost()
+        if (goalCost < bestSolutionCost) {
+          bestSolutionCost = goalCost
+          yield reconstructPath(goalNode)
+        }
+      } else {
+        nextNode.setExpandState(false)
+        addToOpenSet(nextNode)
+      }
     }
   }
 }
 
-latticeAStar.availableOpts = new Set(['epsilon'])
+latticeAStar.availableOpts = new Set([])
