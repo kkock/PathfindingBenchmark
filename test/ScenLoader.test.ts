@@ -15,8 +15,8 @@ function getScenLine (
   return `${bucket} ${map} ${width} ${height} ${startX} ${startY} ${goalX} ${goalY} ${optimalLength}`
 }
 
-describe('Map file format', () => {
-  test('Parses valid scen file lines', () => {
+describe('ScenLoader', () => {
+  test('parses valid scen file lines', () => {
     const line = getScenLine(0, 'test.map', 16, 16, 4, 4, 12, 12, 11.313708498984761)
     expect(() => parseScenLine(line)).not.toThrow()
     expect(parseScenLine(line)).toEqual({
@@ -29,7 +29,7 @@ describe('Map file format', () => {
     })
   })
 
-  test('Parses valid scen files', () => {
+  test('parses valid scen files', () => {
     const scen = getScenFile('1.0', [
       getScenLine(0, 'test.map', 16, 16, 4, 4, 12, 12, 11.313708498984761)
     ])
@@ -44,14 +44,14 @@ describe('Map file format', () => {
     }])
   })
 
-  test('Does not parse scen files with an invalid header', () => {
+  test('does not parse scen files with an invalid header', () => {
     const scen = getScenFile('foo', [
       getScenLine(0, 'test.map', 16, 16, 4, 4, 12, 12, 11.313708498984761)
     ])
     expect(() => parseScen(scen)).toThrow()
   })
 
-  test('Does not parse scen file lines with the wrong number of arguments', () => {
+  test('does not parse scen file lines with the wrong number of arguments', () => {
     const line = '0 test.map 16 16'
     expect(() => parseScenLine(line)).toThrow()
   })

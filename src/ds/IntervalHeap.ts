@@ -95,9 +95,9 @@ export class IntervalHeap<T> {
     const heapMax = this.heap[this._size - 1] as Node<T>
 
     if (this.full) {
-      heapMin[0] = heapMax[1]
+      heapMin[1] = heapMax[1]
     } else {
-      heapMin[0] = heapMax[0]
+      heapMin[1] = heapMax[0]
       this._size--
     }
     this.full = !this.full
@@ -107,12 +107,12 @@ export class IntervalHeap<T> {
   private bubbleMinUp (): void {
     let minIndex = this._size - 1
     const minItem = (this.heap[minIndex] as Node<T>)[0]
-    let nextIndex = (minIndex + 1) / 2 - 1
+    let nextIndex = Math.floor((minIndex + 1) / 2) - 1
 
     while (minIndex > 0 && (this.heap[nextIndex] as Node<T>)[0][1] > minItem[1]) {
       ;(this.heap[minIndex] as Node<T>)[0] = (this.heap[nextIndex] as Node<T>)[0]
       minIndex = nextIndex
-      nextIndex = (minIndex + 1) / 2 - 1
+      nextIndex = Math.floor((minIndex + 1) / 2) - 1
     }
 
     ;(this.heap[minIndex] as Node<T>)[0] = minItem
@@ -121,12 +121,12 @@ export class IntervalHeap<T> {
   private bubbleMaxUp (): void {
     let maxIndex = this._size - 1
     const maxItem = (this.heap[maxIndex] as Node<T>)[1]
-    let nextIndex = (maxIndex + 1) / 2 - 1
+    let nextIndex = Math.floor((maxIndex + 1) / 2) - 1
 
     while (maxIndex > 0 && (this.heap[nextIndex] as Node<T>)[1][1] < maxItem[1]) {
       ;(this.heap[maxIndex] as Node<T>)[1] = (this.heap[nextIndex] as Node<T>)[1]
       maxIndex = nextIndex
-      nextIndex = (maxIndex + 1) / 2 - 1
+      nextIndex = Math.floor((maxIndex + 1) / 2) - 1
     }
 
     ;(this.heap[maxIndex] as Node<T>)[1] = maxItem

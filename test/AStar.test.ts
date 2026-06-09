@@ -9,7 +9,7 @@ import { Cost, euclideanCost } from '../src/services/Cost'
 import { Heuristic, euclideanHeuristic } from '../src/services/Heuristic'
 
 describe('A* algorithm', () => {
-  test('Produces the single shortest path', () => {
+  test('produces the single shortest path', () => {
     const map = strTo2DArr(`
       ...
       ...
