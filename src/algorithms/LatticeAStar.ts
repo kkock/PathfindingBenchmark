@@ -1,4 +1,4 @@
-import type { Algorithm, SearchService } from '../Algorithm'
+import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
 import type { Graph, Vertex } from '../Graph'
 import type { InstanceRegistry } from '../Registry'
 
@@ -66,7 +66,7 @@ export const latticeAStar: Algorithm = function * (
   source: Vertex,
   goal: Vertex,
   opts: { [key: string]: any } = {}
-): Generator<Vertex[], undefined, void> {
+): Generator<AlgorithmResult, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
   const openSet = new BinaryHeap<SearchNode>()
@@ -119,10 +119,17 @@ export const latticeAStar: Algorithm = function * (
   sourceNode.bestChildTotalCost = 0
   addToOpenSet(sourceNode)
 
+  let nodesGenerated = 2
+  let nodesExpanded = 0
+
   while (openSet.size > 0) {
     const node = openSet.pop() as SearchNode
+    nodesExpanded++
     for (const nextVertex of node.vertex.neighbors) {
-      if (!nodes.has(nextVertex)) nodes.set(nextVertex, new SearchNode(nextVertex))
+      if (!nodes.has(nextVertex)) {
+        nodesGenerated++
+        nodes.set(nextVertex, new SearchNode(nextVertex))
+      }
       const nextNode = nodes.get(nextVertex) as SearchNode
       
       nextNode.setExpandState(true)
@@ -131,7 +138,10 @@ export const latticeAStar: Algorithm = function * (
         const goalCost = nextNode.getTotalCost()
         if (goalCost < bestSolutionCost) {
           bestSolutionCost = goalCost
-          yield reconstructPath(goalNode)
+          yield {
+            path: reconstructPath(goalNode),
+            searchMetrics: { nodesExpanded, nodesGenerated }
+          }
         }
       } else {
         nextNode.setExpandState(false)

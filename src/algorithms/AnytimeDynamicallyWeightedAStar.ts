@@ -1,4 +1,4 @@
-import type { Algorithm, SearchService } from '../Algorithm'
+import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
 import type { Graph, Vertex } from '../Graph'
 import type { InstanceRegistry } from '../Registry'
 
@@ -18,7 +18,7 @@ export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
   source: Vertex,
   goal: Vertex,
   opts: { [key: string]: any } = {}
-): Generator<Vertex[], undefined, void> {
+): Generator<AlgorithmResult, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
   const N = h.get(graph, source.x, source.y, goal.x, goal.y)
@@ -32,13 +32,20 @@ export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
   gScores.set(source, 0)
   dScores.set(source, 0)
 
+  let nodesGenerated = 1
+  let nodesExpanded = 0
+
   while (openSet.size > 0) {
     const vertex = openSet.pop() as Vertex
     const currentCost = gScores.get(vertex) as number
     const currentDepth = dScores.get(vertex) as number
+    nodesExpanded++
 
     if (vertex === goal) {
-      yield reconstructPath(cameFrom, goal)
+      yield {
+        path: reconstructPath(cameFrom, goal),
+        searchMetrics: { nodesExpanded, nodesGenerated }
+      }
       return
     }
 
@@ -55,6 +62,7 @@ export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
         dScores.set(nextVertex, dScore)
         cameFrom.set(nextVertex, vertex)
         openSet.insert(nextVertex, fScore)
+        nodesGenerated++
       }
     }
   }

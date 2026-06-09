@@ -1,5 +1,8 @@
 import { Graph, Vertex } from '../Graph'
 
+import { readdirSync } from "node:fs"
+import path from "node:path"
+
 /* function parse (str: string | undefined, pattern: RegExp): string[] {
   if (str == null) return []
   const match = str.match(pattern)
@@ -8,7 +11,7 @@ import { Graph, Vertex } from '../Graph'
   return match.slice(1)
 } */
 
-export function parseMap (source: string): string[][] | null {
+export function parseMap (source: string): string[][] {
   const lines = source.trim().split(/\r\n|\r|\n/)
   if (lines[0] == null || !/^type[\s]octile$/.test(lines[0])) throw new Error('Missing "type octile" on line 1')
   if (lines[3] == null || !/^map$/.test(lines[3])) throw new Error('Missing "map" on line 4')
@@ -61,3 +64,20 @@ export function graphFromMap (map: string[][], neighborPolicy: Array<[number, nu
 
 graphFromMap.movingAiOpts = { passable: new Set('.G') }
 graphFromMap.guardsOpts = { impassable: new Set('@') }
+graphFromMap.diagonalNeighborPolicy = [
+  [-1, -1],
+  [-1, 0],
+  [-1, 1],
+  [0, -1],
+  [0, 1],
+  [1, -1],
+  [1, 0],
+  [1, 1],
+] as Array<[number, number]>
+
+export function getMapFiles (dir: string): Map<string, string> {
+  const result = new Map()
+  const files = readdirSync(dir)
+  for (const file of files) result.set(file, path.join(dir, file))
+  return result
+}

@@ -1,4 +1,4 @@
-import type { Algorithm, SearchService } from '../Algorithm'
+import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
 import type { Graph, Vertex } from '../Graph'
 import type { InstanceRegistry } from '../Registry'
 
@@ -58,7 +58,7 @@ export const focalBeamAStar: Algorithm = function * (
   source: Vertex,
   goal: Vertex,
   opts: { [key: string]: any } = {}
-): Generator<Vertex[], undefined, void> {
+): Generator<AlgorithmResult, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
   const gScores = new Map<Vertex, number>()
@@ -71,12 +71,19 @@ export const focalBeamAStar: Algorithm = function * (
   openSet.insert(source, h.get(graph, source.x, source.y, goal.x, goal.y))
   gScores.set(source, 0)
 
+  let nodesGenerated = 1
+  let nodesExpanded = 0
+
   while (openSet.size > 0) {
     const vertex = openSet.pop() as Vertex
     const currentCost = gScores.get(vertex) as number
+    nodesExpanded++
 
     if (vertex === goal) {
-      yield reconstructPath(cameFrom, goal)
+      yield {
+        path: reconstructPath(cameFrom, goal),
+        searchMetrics: { nodesExpanded, nodesGenerated }
+      }
       openSet.beamSize += dynamicBeamSize
     } else {
       for (const nextVertex of vertex.neighbors) {
@@ -86,6 +93,7 @@ export const focalBeamAStar: Algorithm = function * (
           gScores.set(nextVertex, tentativeCost)
           cameFrom.set(nextVertex, vertex)
           openSet.insert(nextVertex, tentativeCost + h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y))
+          nodesGenerated++
         }
       }
     }

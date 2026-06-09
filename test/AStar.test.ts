@@ -30,9 +30,9 @@ describe('A* algorithm', () => {
     const result = resultGetter()
 
     expect(result).toHaveLength(1)
-    expect(result[0]).toHaveLength(3)
-    expect(result[0][0]).toMatchObject({ x: 0, y: 0 })
-    expect(result[0][1]).toMatchObject({ x: 1, y: 1 })
-    expect(result[0][2]).toMatchObject({ x: 2, y: 2 })
+    expect(result[0].path).toHaveLength(3)
+    expect(result[0].path[0]).toMatchObject({ x: 0, y: 0 })
+    expect(result[0].path[1]).toMatchObject({ x: 1, y: 1 })
+    expect(result[0].path[2]).toMatchObject({ x: 2, y: 2 })
   })
 })

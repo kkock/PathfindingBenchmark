@@ -5,8 +5,13 @@
   "license": "ISC",
   "author": "",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "./dist/src/main.js",
+  "bin": {
+    "pathfinding-benchmark": "./dist/src/main.js"
+  },
   "scripts": {
+    "build": "tsc && npm link",
+    "start": "npm run build && node dist/src/main.js",
     "test": "jest --verbose",
     "coverage": "jest --coverage"
   },
@@ -23,5 +28,8 @@
   },
   "allowScripts": {
     "unrs-resolver@1.12.2": true
+  },
+  "dependencies": {
+    "chalk": "^5.6.2"
   }
 }

@@ -30,7 +30,7 @@ export function parseScenLine (source: string): ScenDef {
   }
 }
 
-export function parseScen (source: string): ScenDef[] | null {
+export function parseScen (source: string): ScenDef[] {
   const lines = source.trim().split(/\r\n|\r|\n/)
   if (lines[0] == null || !/^version[\s]+\d+(?:\.\d+)?$/.test(lines[0])) throw new Error('Incorrect version')
   return lines.slice(1).map(parseScenLine)
