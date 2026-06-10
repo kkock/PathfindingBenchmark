@@ -1,0 +1,25 @@
+{
+  "scenPath": "../../Guards-main/Baldurs Gate II/AR0011SR/AR0011SR_16_0.map.scen",
+  "mapPath": "../../Guards-main/Baldurs Gate II/AR0011SR/AR0011SR_16_0.map",
+  "outPath": "./logs/result.log",
+  "guards": true,
+  "algorithms": [
+    "aStar",
+    "anytimeAStar",
+    "anytimeDynamicallyWeightedAStar",
+    "focalBeamAStar"
+  ],
+  "services": {
+    "Heuristic": [
+      "euclidean(1)"
+    ],
+    "Cost": [
+      "euclidean-guards"
+    ]
+  },
+  "opts": {
+    "epsilon": [
+      1
+    ]
+  }
+}

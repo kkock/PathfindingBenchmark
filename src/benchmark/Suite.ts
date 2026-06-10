@@ -3,17 +3,21 @@ import { graphFromMap, parseMap } from "../dataLoaders/MapLoader"
 import type { ScenDef } from "../dataLoaders/ScenLoader"
 import type { Graph, Vertex } from "../Graph"
 import type { InstanceRegistry } from "../Registry"
+import { Cost } from "../services/Cost"
 
 import { hrtime } from "node:process"
 import { readFileSync } from "node:fs"
+import chalk from "chalk"
 
 export class Suite {
   private graph: Graph
   private scenarios: ScenDef[]
+  public readonly mapName: string
 
-  constructor (graph: Graph, scenarios: ScenDef[]) {
+  constructor (graph: Graph, scenarios: ScenDef[], mapName: string) {
     this.graph = graph
     this.scenarios = scenarios
+    this.mapName = mapName
   }
 
   instance (
@@ -25,10 +29,39 @@ export class Suite {
   }
 }
 
+type ProcessedSingleBenchmarkResult = {
+  results: ({
+    path?: Array<[number, number]>,
+    cost: number,
+    time: number,
+    searchMetrics: { nodesGenerated: number, nodesExpanded: number }
+  })[],
+  scenario: ScenDef
+}
+
+type ProcessedCombinedBenchmarkResult = ({
+  path?: Array<Array<[number, number]>>,
+  cost: number[],
+  time: number[],
+  searchMetrics: { nodesGenerated: number[], nodesExpanded: number[] }
+})
+
+export type ProcessedBenchmarkResult = {
+  results: ProcessedCombinedBenchmarkResult[],
+  scenario: ScenDef
+}
+
 export type BenchmarkResult = {
   startTime: bigint,
   results: ({ result: AlgorithmResult, time: bigint })[],
   scenario: ScenDef
+}
+
+export type SerializedBenchmarkResult = {
+  algorithm: string,
+  services: { [key: string]: string },
+  opts: { [key: string]: any },
+  result: ProcessedBenchmarkResult
 }
 
 export class SuiteInstance {
@@ -46,30 +79,82 @@ export class SuiteInstance {
     this.opts = opts
   }
 
-  run (): BenchmarkResult[] {
-    const results: BenchmarkResult[] = []
+  private collectResult (index: number): ProcessedSingleBenchmarkResult {
+    const scenario = this.scenarios[index] as ScenDef
+    const source = this.graph.getVertex(`${scenario.start.x},${scenario.start.y}`) as Vertex
+    const goal = this.graph.getVertex(`${scenario.goal.x},${scenario.goal.y}`) as Vertex
+    const generator = this.algorithm(this.graph, this.services, source, goal, this.opts)
+
+    const resultTimes: bigint[] = []
+    const algorithmResults: AlgorithmResult[] = []
+    const startTime = hrtime.bigint()
+    for (const result of generator) {
+      resultTimes.push(hrtime.bigint())
+      algorithmResults.push(result)
+    }
+
+    return this.processBenchmarkResult({
+      startTime,
+      results: algorithmResults.map((result, i) => ({result, time: resultTimes[i] as bigint })),
+      scenario
+    })
+  }
+
+  run (iterations: number = 1): ProcessedBenchmarkResult[] {
+    const results: ProcessedBenchmarkResult[] = []
+    if (iterations < 1) return results
+
     for (let i = 0; i < this.scenarios.length; i++) {
-      const scenario = this.scenarios[i] as ScenDef
-      const source = this.graph.getVertex(`${scenario.start.x},${scenario.start.y}`) as Vertex
-      const goal = this.graph.getVertex(`${scenario.goal.x},${scenario.goal.y}`) as Vertex
-      const generator = this.algorithm(this.graph, this.services, source, goal, this.opts)
-
-      const resultTimes: bigint[] = []
-      const algorithmResults = []
-      const startTime = hrtime.bigint()
-      for (const result of generator) {
-        resultTimes.push(hrtime.bigint())
-        algorithmResults.push(result)
+      console.info(chalk.cyan(`Running scenario ${i + 1}/${this.scenarios.length}`))
+      const iterationResults: ProcessedSingleBenchmarkResult[] = []
+      for (let j = 0; j < iterations; j++) {
+        iterationResults.push(this.collectResult(i))
       }
 
-      results[i] = {
-        startTime,
-        results: algorithmResults.map((result, i) => ({result, time: resultTimes[i] as bigint })),
-        scenario
-      }
+      const combinedResults = this.combineResults(iterationResults)
+      results.push({
+        results: combinedResults,
+        scenario: iterationResults[0]!.scenario
+      })
     }
 
     return results
+  }
+
+  private combineResults (trials: ProcessedSingleBenchmarkResult[]): ProcessedCombinedBenchmarkResult[] {
+    if (trials.length === 0) return []
+
+    const maxLength = Math.max(...trials.map(trial => trial.results.length))
+
+    return Array.from({ length: maxLength }, (_, i) => ({
+      time: trials.map(trial => trial.results[i]!.time),
+      cost: trials.map(trial => trial.results[i]!.cost),
+      searchMetrics: {
+        nodesExpanded: trials.map(trial => trial.results[i]!.searchMetrics.nodesExpanded),
+        nodesGenerated: trials.map(trial => trial.results[i]!.searchMetrics.nodesGenerated)
+      }
+    }))
+}
+
+  private processBenchmarkResult (result: BenchmarkResult, includePath: boolean = false): ProcessedSingleBenchmarkResult {
+    const costGetter = this.services.get(Cost) as Cost
+    return {
+      results: result.results.map(value => {
+        const time = Number(value.time - result.startTime) / 1000
+        const path = value.result.path.map<[number, number]>(vertex => [vertex.x, vertex.y])
+        const searchMetrics = value.result.searchMetrics
+        let cost = 0
+
+        for (let i = 0; i < path.length - 1; i++) {
+          const [x1, y1] = path[i] as [number, number]
+          const [x2, y2] = path[i + 1] as [number, number]
+          cost += costGetter.get(this.graph, x1, y1, x2, y2)
+        }
+
+        return includePath ? { time, path, cost, searchMetrics } : { time, cost, searchMetrics }
+      }),
+      scenario: result.scenario
+    }
   }
 }
 
@@ -84,6 +169,8 @@ export function prepareSuites (
   const mapScenDefs = new Map<string, ScenDef[]>()
   const graphs = new Map<string, Graph>()
   const result: Suite[] = []
+
+  scenFile = scenFile.slice(0, 100)
 
   for (const scenLine of scenFile) {
     if (!mapFilePaths.has(scenLine.map)) throw new RangeError(`Map '${scenLine.map}' could not be found in the provided map directory`)
@@ -101,8 +188,40 @@ export function prepareSuites (
 
   for (const [mapName, scenDefs] of mapScenDefs.entries()) {
     const graph = graphs.get(mapName) as Graph
-    result.push(new Suite(graph, scenDefs))
+    result.push(new Suite(graph, scenDefs, mapName))
   }
 
   return result
+}
+
+export function runSuites (
+  suites: Suite[],
+  algorithms: Algorithm[],
+  services: InstanceRegistry<SearchService>,
+  opts: { [key: string]: any } = {}
+): SerializedBenchmarkResult[] {
+  const results: SerializedBenchmarkResult[] = []
+  for (const suite of suites) {
+    for (const algorithm of algorithms) {
+      
+      const instance = suite.instance(algorithm, services, opts)
+      const result = instance.run(5)
+
+      const servicesObj: { [key: string]: string } = {}
+      for (const [serviceClass, serviceInstance] of services.entries()) {
+        servicesObj[serviceClass.name] = serviceInstance.name
+
+      }
+      result.forEach(item => {
+        results.push({
+          algorithm: algorithm.name,
+          services: servicesObj,
+          opts: opts,
+          result: item
+        })
+      })
+    }
+  }
+
+  return results
 }

@@ -1,7 +1,9 @@
 import type { Graph, Vertex } from './Graph'
 import type { InstanceRegistry } from './Registry'
+import type { Cost } from './services/Cost'
+import type { Heuristic } from './services/Heuristic'
 
-export type SearchService = any
+export type SearchService = Cost | Heuristic
 
 export interface AlgorithmResult {
   path: Vertex[],

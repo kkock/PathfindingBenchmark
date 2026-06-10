@@ -52,6 +52,7 @@ export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
     for (const nextVertex of vertex.neighbors) {
       const tentativeCost = currentCost + g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
 
+      if (gScores.has(goal) && tentativeCost >= (gScores.get(goal) as number)) continue
       if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
         const hScore = h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y)
         const dScore = currentDepth + 1

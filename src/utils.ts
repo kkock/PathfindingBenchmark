@@ -63,3 +63,11 @@ export function formatHelp({ options = {}, positional = {}, allowPositionals = t
 
   return lines.join('\n')
 }
+
+export function generateCombinations(input: Record<string, any[]>): Record<string, any>[] {
+  const keys = Object.keys(input)
+  return keys.reduce<Record<string, any>[]>((combinations, key) => {
+    const values = input[key] as any[]
+    return combinations.flatMap(combination => values.map(value => ({ ...combination, [key]: value })))
+  }, [{}])
+}

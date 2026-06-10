@@ -5,7 +5,12 @@ type CostCallback = (graph: Graph, x1: number, y1: number, x2: number, y2: numbe
 
 export class Cost {
   public readonly get: CostCallback
-  constructor (cb: CostCallback) { this.get = cb }
+  public readonly name: string
+
+  constructor (cb: CostCallback, name: string) {
+    this.get = cb
+    this.name = name
+  }
 }
 
 /**
@@ -14,7 +19,7 @@ export class Cost {
  * This benchmark calculates valid neighbors ahead of time so using euclidean
  * distance is satisfactory here.
  */
-export const euclideanCost = new Cost((_, ...args) => euclideanDistance(...args))
+export const euclideanCost = new Cost((_, ...args) => euclideanDistance(...args), 'euclidean')
 
 /**
  * Guards cost takes the amount of guards that see a tile (encoded as a
@@ -40,4 +45,4 @@ export const guardsCost = new Cost((graph, x1, y1, x2, y2) => {
       ]
 
   return euclideanDistance(x1, y1, x2, y2) * (vertices as Vertex[]).reduce((acc, vertex, _, a) => acc + (2 ** parseInt(vertex.value, 36)) / a.length, 0)
-})
+}, 'euclidean-guards')

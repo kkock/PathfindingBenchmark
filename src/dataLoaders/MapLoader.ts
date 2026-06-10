@@ -1,6 +1,6 @@
 import { Graph, Vertex } from '../Graph'
 
-import { readdirSync } from "node:fs"
+import fs from "node:fs"
 import path from "node:path"
 
 /* function parse (str: string | undefined, pattern: RegExp): string[] {
@@ -13,8 +13,11 @@ import path from "node:path"
 
 export function parseMap (source: string): string[][] {
   const lines = source.trim().split(/\r\n|\r|\n/)
-  if (lines[0] == null || !/^type[\s]octile$/.test(lines[0])) throw new Error('Missing "type octile" on line 1')
-  if (lines[3] == null || !/^map$/.test(lines[3])) throw new Error('Missing "map" on line 4')
+  if (lines[0] == null || !/^type[\s]octile$/.test(lines[0].trim())) {
+    console.error({ lines0: lines[0] })
+    throw new Error('Missing "type octile" on line 1')
+  }
+  if (lines[3] == null || !/^map$/.test(lines[3].trim())) throw new Error('Missing "map" on line 4')
 
   /* const [height] = parse(lines[1], /^height[\s]+([\d]+)$/)
   const [width] = parse(lines[2], /^width[\s]+([\d]+)$/) */
@@ -75,9 +78,19 @@ graphFromMap.diagonalNeighborPolicy = [
   [1, 1],
 ] as Array<[number, number]>
 
-export function getMapFiles (dir: string): Map<string, string> {
+export function getMapFiles (mapPath: string): Map<string, string> {
+  const mapPathIsDir = fs.statSync(mapPath).isDirectory()
   const result = new Map()
-  const files = readdirSync(dir)
-  for (const file of files) result.set(file, path.join(dir, file))
+  if (mapPathIsDir) {
+    for (const file of fs.readdirSync(mapPath)) {
+      const fullPath = path.join(mapPath, file)
+      const { base } = path.parse(fullPath)
+      result.set(base, fullPath)
+    }
+  } else {
+    const { base } = path.parse(mapPath)
+    result.set(base, mapPath)
+  }
+  
   return result
 }

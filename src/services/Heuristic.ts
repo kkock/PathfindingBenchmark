@@ -5,12 +5,17 @@ type HeuristicCallback = (graph: Graph, x1: number, y1: number, x2: number, y2: 
 
 export class Heuristic {
   public readonly get: HeuristicCallback
-  constructor (cb: HeuristicCallback) { this.get = cb }
+  public readonly name: string
+
+  constructor (cb: HeuristicCallback, name: string) {
+    this.get = cb
+    this.name = name
+  }
 }
 
-export const euclideanHeuristic = new Heuristic((_, ...args) => euclideanDistance(...args))
+export const euclideanHeuristic = new Heuristic((_, ...args) => euclideanDistance(...args), 'euclidean')
 
 export function getWeightedHeuristic (weight: number, heuristic: Heuristic): Heuristic {
   const cb: HeuristicCallback = (...args) => weight * heuristic.get(...args)
-  return new Heuristic(cb)
+  return new Heuristic(cb, `euclidean(${weight})`)
 }

@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "tsc && npm link",
-    "start": "npm run build && node dist/src/main.js",
+    "start": "npm run build && pathfinding-benchmark --config-path \"./exampleBenchmarkConfig.json\"",
     "test": "jest --verbose",
     "coverage": "jest --coverage"
   },

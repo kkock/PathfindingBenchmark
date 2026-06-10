@@ -1,3 +1,6 @@
+import fs from "node:fs"
+import path from "node:path"
+
 export interface ScenDef {
   bucket: number
   map: string
@@ -34,4 +37,22 @@ export function parseScen (source: string): ScenDef[] {
   const lines = source.trim().split(/\r\n|\r|\n/)
   if (lines[0] == null || !/^version[\s]+\d+(?:\.\d+)?$/.test(lines[0])) throw new Error('Incorrect version')
   return lines.slice(1).map(parseScenLine)
+}
+
+export function readScenFiles (scenPath: string): Map<string, ScenDef[]> {
+  const scenPathIsDir = fs.statSync(scenPath).isDirectory()
+  const result = new Map()
+  if (scenPathIsDir) {
+    for (const file of fs.readdirSync(scenPath)) {
+      const fullPath = path.join(scenPath, file)
+      const parsedScen = parseScen(fs.readFileSync(fullPath).toString())
+      const { base } = path.parse(fullPath)
+      result.set(base, parsedScen)
+    }
+  } else {
+    const parsedScen = parseScen(fs.readFileSync(scenPath).toString())
+    const { base } = path.parse(scenPath)
+    result.set(base, parsedScen)
+  }
+  return result
 }

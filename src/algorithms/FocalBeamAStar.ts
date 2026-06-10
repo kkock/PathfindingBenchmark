@@ -63,12 +63,13 @@ export const focalBeamAStar: Algorithm = function * (
   const g = services.get(Cost)
   const gScores = new Map<Vertex, number>()
 
+  const epsilon: number = opts['epsilon'] ?? 1
   const beamSize: number = opts['beamSize'] ?? 200
   const dynamicBeamSize: number = opts['dynamicBeamSize'] ?? 20
 
   const cameFrom = new Map<Vertex, Vertex>()
   const openSet = new FocalBeamQueue<Vertex>(beamSize)
-  openSet.insert(source, h.get(graph, source.x, source.y, goal.x, goal.y))
+  openSet.insert(source, epsilon * h.get(graph, source.x, source.y, goal.x, goal.y))
   gScores.set(source, 0)
 
   let nodesGenerated = 1
@@ -89,10 +90,11 @@ export const focalBeamAStar: Algorithm = function * (
       for (const nextVertex of vertex.neighbors) {
         const tentativeCost = currentCost + g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
 
+        if (gScores.has(goal) && tentativeCost >= (gScores.get(goal) as number)) continue
         if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
           gScores.set(nextVertex, tentativeCost)
           cameFrom.set(nextVertex, vertex)
-          openSet.insert(nextVertex, tentativeCost + h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y))
+          openSet.insert(nextVertex, tentativeCost + epsilon * h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y))
           nodesGenerated++
         }
       }
@@ -100,4 +102,4 @@ export const focalBeamAStar: Algorithm = function * (
   }
 }
 
-focalBeamAStar.availableOpts = new Set(['beamSize', 'dynamicBeamSize'])
+focalBeamAStar.availableOpts = new Set(['beamSize', 'dynamicBeamSize', 'epsilon'])
