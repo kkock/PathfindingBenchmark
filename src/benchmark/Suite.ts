@@ -1,12 +1,12 @@
 import type { Algorithm, AlgorithmResult, SearchService } from "../Algorithm"
 import { graphFromMap, parseMap } from "../dataLoaders/MapLoader"
-import type { ScenDef } from "../dataLoaders/ScenLoader"
+import { parseScen, type ScenDef } from "../dataLoaders/ScenLoader"
 import type { Graph, Vertex } from "../Graph"
 import type { InstanceRegistry } from "../Registry"
 import { Cost } from "../services/Cost"
 
 import { hrtime } from "node:process"
-import { readFileSync } from "node:fs"
+import fs from "node:fs"
 import chalk from "chalk"
 
 export class Suite {
@@ -29,14 +29,14 @@ export class Suite {
   }
 }
 
-type ProcessedSingleBenchmarkResult = {
+export type ProcessedSingleBenchmarkResult = {
   results: ({
     path?: Array<[number, number]>,
     cost: number,
     time: number,
     searchMetrics: { nodesGenerated: number, nodesExpanded: number }
   })[],
-  scenario: ScenDef
+  scenario: string
 }
 
 type ProcessedCombinedBenchmarkResult = ({
@@ -48,13 +48,17 @@ type ProcessedCombinedBenchmarkResult = ({
 
 export type ProcessedBenchmarkResult = {
   results: ProcessedCombinedBenchmarkResult[],
-  scenario: ScenDef
+  scenario: string
 }
 
 export type BenchmarkResult = {
   startTime: bigint,
   results: ({ result: AlgorithmResult, time: bigint })[],
-  scenario: ScenDef
+  /** 
+   * @todo replace this with some sort of ID instead, we can look up which
+   * scenario it was with that; e.g. `path/to/file.scen(lineNum)`
+   */
+  scenario: string //ScenDef
 }
 
 export type SerializedBenchmarkResult = {
@@ -96,7 +100,7 @@ export class SuiteInstance {
     return this.processBenchmarkResult({
       startTime,
       results: algorithmResults.map((result, i) => ({result, time: resultTimes[i] as bigint })),
-      scenario
+      scenario: getScenarioId(scenario)
     })
   }
 
@@ -177,7 +181,7 @@ export function prepareSuites (
     const mapFilePath = mapFilePaths.get(scenLine.map) as string
 
     if (!graphs.has(scenLine.map)) {
-      const map = parseMap(readFileSync(mapFilePath).toString())
+      const map = parseMap(fs.readFileSync(mapFilePath).toString())
       const graph = graphFromMap(map, graphFromMap.diagonalNeighborPolicy, isGuardsMap ? graphFromMap.guardsOpts : fallbackOpts)
       graphs.set(scenLine.map, graph)
     }
@@ -224,4 +228,19 @@ export function runSuites (
   }
 
   return results
+}
+
+export function getScenarioId ({ fileName, index }: {fileName: string, index: number}): string {
+  return `${fileName}(${index})`
+}
+
+export function decodeScenarioId (id: string): ScenDef {
+  const match = /^(.+?)\((\d+)\)$/.exec(id)
+  if (match == null) throw new RangeError(`'${id}' is not a valid scenario ID`)
+  
+  const fileName = match[1] as string
+  const index = Number(match[2])
+
+  const scen = parseScen(fs.readFileSync(fileName).toString(), fileName)
+  return scen[index] as ScenDef
 }

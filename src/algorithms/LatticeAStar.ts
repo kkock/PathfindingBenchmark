@@ -105,7 +105,7 @@ export const latticeAStar: Algorithm = function * (
         parent.bestChildTotalCost = tentativeCost
         parent.bestChild = node
         propagateCostChange(parent)
-        addToOpenSet(node)
+        addToOpenSet(parent)
       }
     }
   }
@@ -124,28 +124,41 @@ export const latticeAStar: Algorithm = function * (
 
   while (openSet.size > 0) {
     const node = openSet.pop() as SearchNode
+    node.setExpandState(false)
     nodesExpanded++
     for (const nextVertex of node.vertex.neighbors) {
       if (!nodes.has(nextVertex)) {
         nodesGenerated++
-        nodes.set(nextVertex, new SearchNode(nextVertex))
-      }
-      const nextNode = nodes.get(nextVertex) as SearchNode
-      
-      nextNode.setExpandState(true)
-      addChild(nextNode, node)
-      if (nextNode === goalNode) {
-        const goalCost = nextNode.getTotalCost()
-        if (goalCost < bestSolutionCost) {
-          bestSolutionCost = goalCost
-          yield {
-            path: reconstructPath(goalNode),
-            searchMetrics: { nodesExpanded, nodesGenerated }
+        const nextNode = new SearchNode(nextVertex)
+        nodes.set(nextVertex, nextNode)
+        nextNode.setExpandState(true)
+        addChild(nextNode, node)
+        if (nextNode === goalNode) {
+          const goalCost = nextNode.getTotalCost()
+          if (goalCost < bestSolutionCost) {
+            bestSolutionCost = goalCost
+            yield {
+              path: reconstructPath(goalNode),
+              searchMetrics: { nodesExpanded, nodesGenerated }
+            }
           }
+        } else {
+          nextNode.setExpandState(false)
+          addToOpenSet(nextNode)
         }
       } else {
-        nextNode.setExpandState(false)
-        addToOpenSet(nextNode)
+        const nextNode = nodes.get(nextVertex) as SearchNode
+        addChild(nextNode, node)
+        if (nextNode === goalNode) {
+          const goalCost = nextNode.getTotalCost()
+          if (goalCost < bestSolutionCost) {
+            bestSolutionCost = goalCost
+            yield {
+              path: reconstructPath(goalNode),
+              searchMetrics: { nodesExpanded, nodesGenerated }
+            }
+          }
+        }
       }
     }
   }

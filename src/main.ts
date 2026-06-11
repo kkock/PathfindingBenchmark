@@ -20,6 +20,7 @@ import { anytimeAStar, anytimeDynamicallyWeightedAStar, aStar, focalBeamAStar, l
 import { euclideanHeuristic, getWeightedHeuristic, Heuristic } from './services/Heuristic'
 import { Cost, euclideanCost, guardsCost } from './services/Cost'
 import { runConfig } from './dataLoaders/BenchmarkConfigLoader'
+import { loadAndDisplayResults } from './benchmark/Inspect'
 
 const parseArgsConfig: ExtendedParseArgsConfig = {
   options: {
@@ -55,6 +56,11 @@ const parseArgsConfig: ExtendedParseArgsConfig = {
       type: 'string',
       short: 'c',
       description: 'Config file path (instead of commandline args).'
+    },
+    'log-path': {
+      type: 'string',
+      short: 'l',
+      description: 'Log file to summarize.'
     },
 
     guards: {
@@ -104,6 +110,11 @@ function main () {
 
     if (values['config-path']) {
       runConfig(values['config-path'] as string)
+      process.exit()
+    }
+
+    if (values['log-path']) {
+      loadAndDisplayResults(values['log-path'] as string)
       process.exit()
     }
     

@@ -7,10 +7,12 @@ export interface ScenDef {
   mapSize: { x: number, y: number }
   start: { x: number, y: number }
   goal: { x: number, y: number }
-  optimalLength: number
+  optimalLength: number,
+  fileName: string,
+  index: number
 }
 
-export function parseScenLine (source: string): ScenDef {
+export function parseScenLine (source: string, fileName: string, lineIndex: number): ScenDef {
   const lineArgs = source.trim().split(/\s+/)
   const [
     bucket,
@@ -29,14 +31,16 @@ export function parseScenLine (source: string): ScenDef {
     mapSize: { x: Number(mapWidth), y: Number(mapHeight) },
     start: { x: Number(startX), y: Number(startY) },
     goal: { x: Number(goalX), y: Number(goalY) },
-    optimalLength: Number(optimalLength)
+    optimalLength: Number(optimalLength),
+    fileName,
+    index: lineIndex
   }
 }
 
-export function parseScen (source: string): ScenDef[] {
+export function parseScen (source: string, fileName: string): ScenDef[] {
   const lines = source.trim().split(/\r\n|\r|\n/)
   if (lines[0] == null || !/^version[\s]+\d+(?:\.\d+)?$/.test(lines[0])) throw new Error('Incorrect version')
-  return lines.slice(1).map(parseScenLine)
+  return lines.slice(1).map((v, i) => parseScenLine(v, fileName, i))
 }
 
 export function readScenFiles (scenPath: string): Map<string, ScenDef[]> {
@@ -45,12 +49,12 @@ export function readScenFiles (scenPath: string): Map<string, ScenDef[]> {
   if (scenPathIsDir) {
     for (const file of fs.readdirSync(scenPath)) {
       const fullPath = path.join(scenPath, file)
-      const parsedScen = parseScen(fs.readFileSync(fullPath).toString())
+      const parsedScen = parseScen(fs.readFileSync(fullPath).toString(), fullPath)
       const { base } = path.parse(fullPath)
       result.set(base, parsedScen)
     }
   } else {
-    const parsedScen = parseScen(fs.readFileSync(scenPath).toString())
+    const parsedScen = parseScen(fs.readFileSync(scenPath).toString(), scenPath)
     const { base } = path.parse(scenPath)
     result.set(base, parsedScen)
   }
