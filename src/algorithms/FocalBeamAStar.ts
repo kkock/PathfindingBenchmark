@@ -103,3 +103,4 @@ export const focalBeamAStar: Algorithm = function * (
 }
 
 focalBeamAStar.availableOpts = new Set(['beamSize', 'dynamicBeamSize', 'epsilon'])
+focalBeamAStar.availableServices = new Set([Cost, Heuristic])

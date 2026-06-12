@@ -17,5 +17,7 @@ export const euclideanHeuristic = new Heuristic((_, ...args) => euclideanDistanc
 
 export function getWeightedHeuristic (weight: number, heuristic: Heuristic): Heuristic {
   const cb: HeuristicCallback = (...args) => weight * heuristic.get(...args)
-  return new Heuristic(cb, `euclidean(${weight})`)
+  return new Heuristic(cb, `${heuristic.name}(${weight})`)
 }
+
+export class InadmissibleHeuristic extends Heuristic {}

@@ -3,17 +3,7 @@ type Node<T> = [item: T, priority: number]
 export class BinaryHeap<T> {
   private heap: Array<Node<T>> = []
 
-  /*public insert (item: T, priority: number): boolean {
-    this.heap.push(null as unknown as Node<T>)
-    let hole: number
-    for (hole = this.heap.length - 1; hole > 0 && priority <= (this.heap[Math.floor(hole / 2)] as Node<T>)[1]; hole = Math.floor(hole / 2)) {
-      this.heap[hole] = this.heap[Math.floor(hole / 2)] as Node<T>
-    }
-    this.heap[hole] = [item, priority]
-    return true
-  }*/
-
-  public insert(item: T, priority: number): boolean {
+  public insert (item: T, priority: number): boolean {
     this.heap.push([item, priority])
 
     let hole = this.heap.length - 1

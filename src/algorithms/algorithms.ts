@@ -5,6 +5,7 @@ import { focalBeamAStar } from './FocalBeamAStar'
 import { latticeAStar } from './LatticeAStar'
 import { beamSearch } from './BeamSearch'
 import { beamAStar } from './BeamAStar'
+import { explicitEstimationSearch } from './ExplicitEstimationSearch'
 
 export default [
   aStar,
@@ -13,7 +14,8 @@ export default [
   focalBeamAStar,
   latticeAStar,
   beamSearch,
-  beamAStar
+  beamAStar,
+  explicitEstimationSearch
 ]
 
 export { aStar } from './AStar'
@@ -23,3 +25,4 @@ export { focalBeamAStar } from './FocalBeamAStar'
 export { latticeAStar } from './LatticeAStar'
 export { beamSearch } from './BeamSearch'
 export { beamAStar } from './BeamAStar'
+export { explicitEstimationSearch } from './ExplicitEstimationSearch'

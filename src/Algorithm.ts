@@ -1,5 +1,5 @@
 import type { Graph, Vertex } from './Graph'
-import type { InstanceRegistry } from './Registry'
+import type { ClassType, InstanceRegistry } from './Registry'
 import type { Cost } from './services/Cost'
 import type { Heuristic } from './services/Heuristic'
 
@@ -13,7 +13,10 @@ export interface AlgorithmResult {
   }
 }
 
-export type Algorithm = { availableOpts: Set<string> } & (
+export type Algorithm = {
+  availableOpts: Set<string>
+  availableServices: Set<ClassType<SearchService>>
+} & (
   (
     graph: Graph,
     services: InstanceRegistry<SearchService>,

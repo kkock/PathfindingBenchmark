@@ -62,3 +62,4 @@ export const beamAStar: Algorithm = function * (
 }
 
 beamAStar.availableOpts = new Set(['epsilon', 'beamSize'])
+beamAStar.availableServices = new Set([Cost, Heuristic])

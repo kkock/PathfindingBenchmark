@@ -1,4 +1,4 @@
-type ClassType<T> = new (...args: any[]) => T
+export type ClassType<T> = new (...args: any[]) => T
 
 export interface InstanceRegistry<T> {
   set: <C extends ClassType<T>>(constructor: C, instance: InstanceType<C>) => void

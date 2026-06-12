@@ -46,3 +46,10 @@ export const guardsCost = new Cost((graph, x1, y1, x2, y2) => {
 
   return euclideanDistance(x1, y1, x2, y2) * (vertices as Vertex[]).reduce((acc, vertex, _, a) => acc + (2 ** parseInt(vertex.value, 36)) / a.length, 0)
 }, 'euclidean-guards')
+
+export function getWeightedCost (weight: number, cost: Cost): Cost {
+  const cb: CostCallback = (...args) => weight * cost.get(...args)
+  return new Cost(cb, `${cost.name}(${weight})`)
+}
+
+export class ApproximateCost extends Cost {}

@@ -58,3 +58,4 @@ export const anytimeAStar: Algorithm = function * (
 }
 
 anytimeAStar.availableOpts = new Set(['epsilon'])
+anytimeAStar.availableServices = new Set([Cost, Heuristic])

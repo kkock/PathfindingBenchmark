@@ -3,14 +3,14 @@ import type { Graph, Vertex } from '../Graph'
 import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
-import { Heuristic } from '../services/Heuristic'
+import { InadmissibleHeuristic } from '../services/Heuristic'
 import { BinaryHeap } from '../ds/BinaryHeap'
 
 class SearchNode {
   public readonly vertex: Vertex
   public children = new Set<SearchNode>()
-  public parents  = new Set<SearchNode>()
-  public heuristic: number  | undefined
+  public parents = new Set<SearchNode>()
+  public heuristic: number | undefined
   private expandState = false
   public bestChild: SearchNode | undefined
   public bestChildTotalCost: number | undefined
@@ -36,17 +36,17 @@ class SearchNode {
     return this.bestChildTotalCost ?? Infinity
   }
 
-  getEdgeCost (graph: Graph, costGetter: Cost, child: SearchNode): number  {
+  getEdgeCost (graph: Graph, costGetter: Cost, child: SearchNode): number {
     if (!this.costs.has(child)) {
       this.costs.set(child, costGetter.get(graph,
-          this.vertex.x,
-          this.vertex.y,
-          child.vertex.x,
-          child.vertex.y
+        this.vertex.x,
+        this.vertex.y,
+        child.vertex.x,
+        child.vertex.y
       ))
     }
 
-    return this.costs.get(child) as number 
+    return this.costs.get(child) as number
   }
 }
 
@@ -67,29 +67,29 @@ export const latticeAStar: Algorithm = function * (
   goal: Vertex,
   opts: { [key: string]: any } = {}
 ): Generator<AlgorithmResult, undefined, void> {
-  const h = services.get(Heuristic)
+  const h = services.get(InadmissibleHeuristic)
   const g = services.get(Cost)
   const openSet = new BinaryHeap<SearchNode>()
   const nodes = new Map<Vertex, SearchNode>()
   let bestSolutionCost = Infinity
 
-  function addToOpenSet (node: SearchNode) {
+  function addToOpenSet (node: SearchNode): void {
     if (!node.getExpandState()) {
       if (node.heuristic == null) {
         node.heuristic = h.get(graph, node.vertex.x, node.vertex.y, goal.x, goal.y)
       }
       if (node.heuristic + node.getTotalCost() < bestSolutionCost) {
-        node.setExpandState(true);
-        openSet.insert(node, node.heuristic);
+        node.setExpandState(true)
+        openSet.insert(node, node.heuristic)
       }
     }
   }
 
-  function addChild (parent: SearchNode, child: SearchNode):void {
+  function addChild (parent: SearchNode, child: SearchNode): void {
     parent.children.add(child)
     child.parents.add(parent)
 
-    let tentativeCost = parent.getEdgeCost(graph, g, child) + child.getTotalCost()
+    const tentativeCost = parent.getEdgeCost(graph, g, child) + child.getTotalCost()
     if (parent.bestChildTotalCost == null || tentativeCost < parent.bestChildTotalCost) {
       parent.bestChildTotalCost = tentativeCost
       parent.bestChild = child
@@ -97,10 +97,10 @@ export const latticeAStar: Algorithm = function * (
     }
   }
 
-  function propagateCostChange (node: SearchNode) {
-    let totalNodeCost = node.getTotalCost()
+  function propagateCostChange (node: SearchNode): void {
+    const totalNodeCost = node.getTotalCost()
     for (const parent of node.parents) {
-      let tentativeCost = parent.getEdgeCost(graph, g, node) + totalNodeCost
+      const tentativeCost = parent.getEdgeCost(graph, g, node) + totalNodeCost
       if (parent.bestChildTotalCost == null || tentativeCost < parent.bestChildTotalCost) {
         parent.bestChildTotalCost = tentativeCost
         parent.bestChild = node
@@ -165,3 +165,4 @@ export const latticeAStar: Algorithm = function * (
 }
 
 latticeAStar.availableOpts = new Set([])
+latticeAStar.availableServices = new Set([Cost, InadmissibleHeuristic])

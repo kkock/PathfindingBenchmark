@@ -70,3 +70,4 @@ export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
 }
 
 anytimeDynamicallyWeightedAStar.availableOpts = new Set(['epsilon'])
+anytimeDynamicallyWeightedAStar.availableServices = new Set([Cost, Heuristic])

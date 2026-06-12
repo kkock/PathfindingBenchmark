@@ -66,19 +66,18 @@ const parseArgsConfig: ExtendedParseArgsConfig = {
     guards: {
       type: 'boolean',
       description: 'Treat the loaded maps as Guards maps.'
-    },
+    }
   },
-  allowPositionals: true,
+  allowPositionals: true
 }
-
 
 function getAlgorithms (): Algorithm[] {
   return [
     aStar,
     anytimeAStar,
     anytimeDynamicallyWeightedAStar,
-    focalBeamAStar,
-    //latticeAStar
+    focalBeamAStar
+    // latticeAStar
   ]
 }
 
@@ -97,12 +96,12 @@ function getOpts (isGuardsMap: boolean): { services: InstanceRegistry<SearchServ
 function main () {
   try {
     const { values, positionals } = parseArgs<ParseArgsConfig>(parseArgsConfig)
-  
+
     if (values['version']) {
       console.log(chalk.yellow(`${pkg.name} `) + chalk.green(`v${pkg.version}\n`))
       process.exit()
     }
-    
+
     if (values['help']) {
       console.log(formatHelp(parseArgsConfig))
       process.exit()
@@ -117,7 +116,7 @@ function main () {
       loadAndDisplayResults(values['log-path'] as string)
       process.exit()
     }
-    
+
     let mapPath: string
     let scenPath: string
 
@@ -146,12 +145,12 @@ function main () {
 
     fs.writeFileSync(
       values['out-path'] as string, JSON.stringify(results)
-      //results.map(result => JSON.stringify(result)).join('\n')
+      // results.map(result => JSON.stringify(result)).join('\n')
     )
-
   } catch (err) {
     if (err instanceof Error) {
       console.error(chalk.red(err.message))
+      throw err
     } else {
       console.error(chalk.red(`${err}`))
     }
@@ -175,7 +174,5 @@ function runScenarios (
   }
   return results.flat()
 }
-
-
 
 main()

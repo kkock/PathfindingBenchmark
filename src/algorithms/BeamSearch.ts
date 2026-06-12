@@ -83,3 +83,4 @@ export const beamSearch: Algorithm = function * (
 }
 
 beamSearch.availableOpts = new Set(['epsilon', 'beamSize'])
+beamSearch.availableServices = new Set([Cost, Heuristic])
