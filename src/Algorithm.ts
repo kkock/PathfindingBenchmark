@@ -6,7 +6,7 @@ import type { Heuristic } from './services/Heuristic'
 export type SearchService = Cost | Heuristic
 
 export interface AlgorithmResult {
-  path: Vertex[],
+  path: Vertex[]
   searchMetrics: {
     nodesGenerated: number
     nodesExpanded: number
@@ -22,4 +22,3 @@ export type Algorithm = { availableOpts: Set<string> } & (
     opts?: { [key: string]: any }
   ) => Generator<AlgorithmResult, undefined, void>
 )
-

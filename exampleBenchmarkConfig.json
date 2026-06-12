@@ -4,12 +4,16 @@
   "outPath": "./logs/result.log",
   "guards": true,
   "algorithms": [
-    "latticeAStar"
+    "aStar",
+    "anytimeAStar",
+    "anytimeDynamicallyWeightedAStar",
+    "focalBeamAStar",
+    "beamSearch",
+    "beamAStar"
   ],
   "services": {
     "Heuristic": [
-      "euclidean(0.25)",
-      "euclidean(3)"
+      "euclidean(0.25)"
     ],
     "Cost": [
       "euclidean-guards"
