@@ -1,5 +1,5 @@
-import fs from "node:fs"
-import path from "node:path"
+import fs from 'node:fs'
+import path from 'node:path'
 
 export interface ScenDef {
   bucket: number
@@ -7,8 +7,8 @@ export interface ScenDef {
   mapSize: { x: number, y: number }
   start: { x: number, y: number }
   goal: { x: number, y: number }
-  optimalLength: number,
-  fileName: string,
+  optimalLength: number
+  fileName: string
   index: number
 }
 

@@ -1,17 +1,17 @@
-import type { Algorithm, AlgorithmResult, SearchService } from "../Algorithm"
-import { graphFromMap, parseMap } from "../dataLoaders/MapLoader"
-import { parseScen, type ScenDef } from "../dataLoaders/ScenLoader"
-import type { Graph, Vertex } from "../Graph"
-import type { InstanceRegistry } from "../Registry"
-import { Cost } from "../services/Cost"
+import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
+import { graphFromMap, parseMap } from '../dataLoaders/MapLoader'
+import { parseScen, type ScenDef } from '../dataLoaders/ScenLoader'
+import type { Graph, Vertex } from '../Graph'
+import type { InstanceRegistry } from '../Registry'
+import { Cost } from '../services/Cost'
 
-import { hrtime } from "node:process"
-import fs from "node:fs"
-import chalk from "chalk"
+import { hrtime } from 'node:process'
+import fs from 'node:fs'
+import chalk from 'chalk'
 
 export class Suite {
-  private graph: Graph
-  private scenarios: ScenDef[]
+  private readonly graph: Graph
+  private readonly scenarios: ScenDef[]
   public readonly mapName: string
 
   constructor (graph: Graph, scenarios: ScenDef[], mapName: string) {
@@ -29,51 +29,51 @@ export class Suite {
   }
 }
 
-export type ProcessedSingleBenchmarkResult = {
-  results: ({
-    path?: Array<[number, number]>,
-    cost: number,
-    time: number,
+export interface ProcessedSingleBenchmarkResult {
+  results: Array<{
+    path?: Array<[number, number]>
+    cost: number
+    time: number
     searchMetrics: { nodesGenerated: number, nodesExpanded: number }
-  })[],
+  }>
   scenario: string
 }
 
-type ProcessedCombinedBenchmarkResult = ({
-  path?: Array<Array<[number, number]>>,
-  cost: number[],
-  time: number[],
+interface ProcessedCombinedBenchmarkResult {
+  path?: Array<Array<[number, number]>>
+  cost: number[]
+  time: number[]
   searchMetrics: { nodesGenerated: number[], nodesExpanded: number[] }
-})
+}
 
-export type ProcessedBenchmarkResult = {
-  results: ProcessedCombinedBenchmarkResult[],
+export interface ProcessedBenchmarkResult {
+  results: ProcessedCombinedBenchmarkResult[]
   scenario: string
 }
 
-export type BenchmarkResult = {
-  startTime: bigint,
-  results: ({ result: AlgorithmResult, time: bigint })[],
-  /** 
+export interface BenchmarkResult {
+  startTime: bigint
+  results: Array<{ result: AlgorithmResult, time: bigint }>
+  /**
    * @todo replace this with some sort of ID instead, we can look up which
    * scenario it was with that; e.g. `path/to/file.scen(lineNum)`
    */
-  scenario: string //ScenDef
+  scenario: string // ScenDef
 }
 
-export type SerializedBenchmarkResult = {
-  algorithm: string,
-  services: { [key: string]: string },
-  opts: { [key: string]: any },
+export interface SerializedBenchmarkResult {
+  algorithm: string
+  services: { [key: string]: string }
+  opts: { [key: string]: any }
   result: ProcessedBenchmarkResult
 }
 
 export class SuiteInstance {
-  private graph: Graph
-  private scenarios: ScenDef[]
-  private algorithm: Algorithm
-  private services: InstanceRegistry<SearchService>
-  private opts: { [key: string]: any }
+  private readonly graph: Graph
+  private readonly scenarios: ScenDef[]
+  private readonly algorithm: Algorithm
+  private readonly services: InstanceRegistry<SearchService>
+  private readonly opts: { [key: string]: any }
 
   constructor (graph: Graph, scenarios: ScenDef[], services: InstanceRegistry<SearchService>, algorithm: Algorithm, opts: { [key: string]: any } = {}) {
     this.graph = graph
@@ -99,7 +99,7 @@ export class SuiteInstance {
 
     return this.processBenchmarkResult({
       startTime,
-      results: algorithmResults.map((result, i) => ({result, time: resultTimes[i] as bigint })),
+      results: algorithmResults.map((result, i) => ({ result, time: resultTimes[i] as bigint })),
       scenario: getScenarioId(scenario)
     })
   }
@@ -118,7 +118,7 @@ export class SuiteInstance {
       const combinedResults = this.combineResults(iterationResults)
       results.push({
         results: combinedResults,
-        scenario: iterationResults[0]!.scenario
+        scenario: (iterationResults[0] as ProcessedSingleBenchmarkResult).scenario
       })
     }
 
@@ -131,17 +131,17 @@ export class SuiteInstance {
     const maxLength = Math.max(...trials.map(trial => trial.results.length))
 
     return Array.from({ length: maxLength }, (_, i) => ({
-      time: trials.map(trial => trial.results[i]!.time),
-      cost: trials.map(trial => trial.results[i]!.cost),
+      time: trials.map(trial => (trial.results[i] as any).time),
+      cost: trials.map(trial => (trial.results[i] as any).cost),
       searchMetrics: {
-        nodesExpanded: trials.map(trial => trial.results[i]!.searchMetrics.nodesExpanded),
-        nodesGenerated: trials.map(trial => trial.results[i]!.searchMetrics.nodesGenerated)
+        nodesExpanded: trials.map(trial => (trial.results[i] as any).searchMetrics.nodesExpanded),
+        nodesGenerated: trials.map(trial => (trial.results[i] as any).searchMetrics.nodesGenerated)
       }
     }))
-}
+  }
 
   private processBenchmarkResult (result: BenchmarkResult, includePath: boolean = false): ProcessedSingleBenchmarkResult {
-    const costGetter = this.services.get(Cost) as Cost
+    const costGetter = this.services.get(Cost)
     return {
       results: result.results.map(value => {
         const time = Number(value.time - result.startTime) / 1000
@@ -187,7 +187,7 @@ export function prepareSuites (
     }
 
     if (!mapScenDefs.has(scenLine.map)) mapScenDefs.set(scenLine.map, [])
-    mapScenDefs.get(scenLine.map)!.push(scenLine)
+    ;(mapScenDefs.get(scenLine.map) as ScenDef[]).push(scenLine)
   }
 
   for (const [mapName, scenDefs] of mapScenDefs.entries()) {
@@ -207,20 +207,18 @@ export function runSuites (
   const results: SerializedBenchmarkResult[] = []
   for (const suite of suites) {
     for (const algorithm of algorithms) {
-      
       const instance = suite.instance(algorithm, services, opts)
       const result = instance.run(5)
 
       const servicesObj: { [key: string]: string } = {}
       for (const [serviceClass, serviceInstance] of services.entries()) {
         servicesObj[serviceClass.name] = serviceInstance.name
-
       }
       result.forEach(item => {
         results.push({
           algorithm: algorithm.name,
           services: servicesObj,
-          opts: opts,
+          opts,
           result: item
         })
       })
@@ -230,14 +228,14 @@ export function runSuites (
   return results
 }
 
-export function getScenarioId ({ fileName, index }: {fileName: string, index: number}): string {
+export function getScenarioId ({ fileName, index }: { fileName: string, index: number }): string {
   return `${fileName}(${index})`
 }
 
 export function decodeScenarioId (id: string): ScenDef {
   const match = /^(.+?)\((\d+)\)$/.exec(id)
   if (match == null) throw new RangeError(`'${id}' is not a valid scenario ID`)
-  
+
   const fileName = match[1] as string
   const index = Number(match[2])
 

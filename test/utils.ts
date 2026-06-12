@@ -10,7 +10,7 @@ export const diagonalNeighborPolicy: Array<[number, number]> = [
   [0, 1],
   [1, -1],
   [1, 0],
-  [1, 1],
+  [1, 1]
 ]
 
 export function getSeededPrng (seed = 0x12345678): () => number {

@@ -10,15 +10,15 @@ function groupBenchmarkResultsByScenario (source: string): Map<string, Serialize
   for (const line of lines) {
     const key = line.result.scenario
     if (!resultsByScenario.has(key)) resultsByScenario.set(key, [])
-    resultsByScenario.get(key)!.push(line)
+    ;(resultsByScenario.get(key) as SerializedBenchmarkResult[]).push(line)
   }
   return resultsByScenario
 }
 
-export type AveragedBenchmarkResult = {
-  algorithm: string,
-  services: { [key: string]: string },
-  opts: { [key: string]: any },
+export interface AveragedBenchmarkResult {
+  algorithm: string
+  services: { [key: string]: string }
+  opts: { [key: string]: any }
   result: ProcessedSingleBenchmarkResult
 }
 
@@ -31,7 +31,7 @@ function selectMedian (line: SerializedBenchmarkResult): AveragedBenchmarkResult
         time: getMedianElement(entry.time.toSorted(sortAscending)),
         searchMetrics: {
           nodesGenerated: getMedianElement(entry.searchMetrics.nodesGenerated.toSorted(sortAscending)),
-          nodesExpanded: getMedianElement(entry.searchMetrics.nodesExpanded.toSorted(sortAscending)),
+          nodesExpanded: getMedianElement(entry.searchMetrics.nodesExpanded.toSorted(sortAscending))
         }
       }
     }),
@@ -46,7 +46,7 @@ function selectMedian (line: SerializedBenchmarkResult): AveragedBenchmarkResult
   }
 }
 
-export function loadAndDisplayResults (fileName: string) {
+export function loadAndDisplayResults (fileName: string): void {
   const groupedResults = groupBenchmarkResultsByScenario(fs.readFileSync(fileName).toString())
 
   for (const [scenario, results] of groupedResults.entries()) {
@@ -116,7 +116,7 @@ function displayStat (name: string, value: number | undefined, expected: number)
   }
 }
 
-function stringifyOptions (algorithm: string, services: { [key: string]: string }, opts: { [key: string]: any }) {
+function stringifyOptions (algorithm: string, services: { [key: string]: string }, opts: { [key: string]: any }): string {
   const data: { [key: string]: any } = {}
   data['algorithm'] = algorithm
   data['heuristic'] = services['Heuristic']

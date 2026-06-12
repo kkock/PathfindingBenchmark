@@ -1,7 +1,7 @@
 import { Graph, Vertex } from '../Graph'
 
-import fs from "node:fs"
-import path from "node:path"
+import fs from 'node:fs'
+import path from 'node:path'
 
 /* function parse (str: string | undefined, pattern: RegExp): string[] {
   if (str == null) return []
@@ -75,7 +75,7 @@ graphFromMap.diagonalNeighborPolicy = [
   [0, 1],
   [1, -1],
   [1, 0],
-  [1, 1],
+  [1, 1]
 ] as Array<[number, number]>
 
 export function getMapFiles (mapPath: string): Map<string, string> {
@@ -91,6 +91,6 @@ export function getMapFiles (mapPath: string): Map<string, string> {
     const { base } = path.parse(mapPath)
     result.set(base, mapPath)
   }
-  
+
   return result
 }

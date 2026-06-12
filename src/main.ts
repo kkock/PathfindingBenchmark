@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import type { ProcessedBenchmarkResult, SerializedBenchmarkResult, Suite } from './benchmark/Suite'
+import type { SerializedBenchmarkResult } from './benchmark/Suite'
 import type { Algorithm, SearchService } from './Algorithm'
 import type { InstanceRegistry } from './Registry'
 import type { ScenDef } from './dataLoaders/ScenLoader'
@@ -16,7 +16,7 @@ import { getMapFiles } from './dataLoaders/MapLoader'
 import { readScenFiles } from './dataLoaders/ScenLoader'
 import { prepareSuites, runSuites } from './benchmark/Suite'
 
-import { anytimeAStar, anytimeDynamicallyWeightedAStar, aStar, focalBeamAStar, latticeAStar } from './algorithms/algorithms'
+import { anytimeAStar, anytimeDynamicallyWeightedAStar, aStar, focalBeamAStar } from './algorithms/algorithms'
 import { euclideanHeuristic, getWeightedHeuristic, Heuristic } from './services/Heuristic'
 import { Cost, euclideanCost, guardsCost } from './services/Cost'
 import { runConfig } from './dataLoaders/BenchmarkConfigLoader'
@@ -93,26 +93,26 @@ function getOpts (isGuardsMap: boolean): { services: InstanceRegistry<SearchServ
   }
 }
 
-function main () {
+function main (): void {
   try {
     const { values, positionals } = parseArgs<ParseArgsConfig>(parseArgsConfig)
 
-    if (values['version']) {
+    if (values['version'] as boolean) {
       console.log(chalk.yellow(`${pkg.name} `) + chalk.green(`v${pkg.version}\n`))
       process.exit()
     }
 
-    if (values['help']) {
+    if (values['help'] as boolean) {
       console.log(formatHelp(parseArgsConfig))
       process.exit()
     }
 
-    if (values['config-path']) {
+    if (values['config-path'] as boolean) {
       runConfig(values['config-path'] as string)
       process.exit()
     }
 
-    if (values['log-path']) {
+    if (values['log-path'] as boolean) {
       loadAndDisplayResults(values['log-path'] as string)
       process.exit()
     }
@@ -126,7 +126,7 @@ function main () {
     } else if (values['map-path'] == null) {
       mapPath = values['scen-path'] as string
       scenPath = values['scen-path'] as string
-    } else if (!values['scen-path'] == null) {
+    } else if (values['scen-path'] == null) {
       mapPath = values['map-path'] as string
       scenPath = values['map-path'] as string
     } else {
@@ -152,7 +152,16 @@ function main () {
       console.error(chalk.red(err.message))
       throw err
     } else {
-      console.error(chalk.red(`${err}`))
+      /**
+       * I'm using `as any` with a linter suppression directive here. Even
+       * though I could just say `as string`, that'd be a lie. It can be
+       * anything other than `Error`. But this method of converting to string
+       * doesn't throw so it's fine.
+       * I hate that I have to suppress the linter to avoid lying but that's
+       * what I get for using standard style I guess. I like it but a few of
+       * the rules are rather senseless.
+       */
+      console.error(chalk.red(`${err as any}`)) // eslint-disable-line @typescript-eslint/restrict-template-expressions
     }
     console.log(formatHelp(parseArgsConfig))
     process.exit(1)

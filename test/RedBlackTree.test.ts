@@ -37,12 +37,12 @@ describe('RedBlackTree', () => {
 
       // BST ordering.
       if (!isNil(node.left)) {
-        expect((tree as any).compare(node.left.values[0]!, node.values[0]!)).toBeLessThan(0)
+        expect((tree as any).compare(node.left.values[0], node.values[0])).toBeLessThan(0)
         expect(node.left.parent).toBe(node)
       }
 
       if (!isNil(node.right)) {
-        expect((tree as any).compare(node.right.values[0]!, node.values[0]!)).toBeGreaterThanOrEqual(0)
+        expect((tree as any).compare(node.right.values[0], node.values[0])).toBeGreaterThanOrEqual(0)
         expect(node.right.parent).toBe(node)
       }
 
@@ -140,7 +140,7 @@ describe('RedBlackTree', () => {
     test('returns minimum when key is too small', () => {
       const tree = makeTree()
       ;[10, 20, 30].forEach(v => tree.insert(v))
-      expect(tree.lowerBound(-100)?.values[0]!).toBe(10)
+      expect(tree.lowerBound(-100)?.values[0]).toBe(10)
     })
 
     test('returns null when key exceeds all values', () => {
@@ -205,21 +205,6 @@ describe('RedBlackTree - duplicate keys', () => {
 
   const makeTree = (): RedBlackTree<Item> => new RedBlackTree<Item>((a, b) => a.value - b.value)
 
-  function debugBuckets (tree: RedBlackTree<Item>): void {
-    const seen = new Set<Item>()
-
-    let node = tree.minimum()
-    while (node != null) {
-      for (const v of node.values) {
-        if (seen.has(v)) {
-          throw new Error('Duplicate value exists in multiple nodes')
-        }
-        seen.add(v)
-      }
-      node = tree.successor(node)
-    }
-  }
-
   function inorder (tree: RedBlackTree<Item>): Item[] {
     const result: Item[] = []
 
@@ -262,12 +247,12 @@ describe('RedBlackTree - duplicate keys', () => {
 
       // BST ordering.
       if (!isNil(node.left)) {
-        expect((tree as any).compare(node.left.values[0]!, node.values[0]!)).toBeLessThan(0)
+        expect((tree as any).compare(node.left.values[0], node.values[0])).toBeLessThan(0)
         expect(node.left.parent).toBe(node)
       }
 
       if (!isNil(node.right)) {
-        expect((tree as any).compare(node.right.values[0]!, node.values[0]!)).toBeGreaterThanOrEqual(0)
+        expect((tree as any).compare(node.right.values[0], node.values[0])).toBeGreaterThanOrEqual(0)
         expect(node.right.parent).toBe(node)
       }
 
@@ -311,8 +296,8 @@ describe('RedBlackTree - duplicate keys', () => {
     tree.insert(b)
     const found = tree.search(a)
     expect(found).not.toBeNull()
-    expect((found as RedBlackNode<Item>).values[0]!.value).toBe(5)
-    expect((found as RedBlackNode<Item>).values[0]! === a || (found as RedBlackNode<Item>).values[0]! === b).toBe(true)
+    expect((found as RedBlackNode<Item>).values[0]?.value).toBe(5)
+    expect((found as RedBlackNode<Item>).values[0] === a || (found as RedBlackNode<Item>).values[0] === b).toBe(true)
   })
 
   test('remove deletes only one instance of a duplicate key', () => {
@@ -396,7 +381,6 @@ describe('RedBlackTree - duplicate keys', () => {
         reference.push(item)
         allInserted.push(item)
       } else {
-      // ALWAYS remove something that was actually inserted
         const idx = Math.floor(rand() * reference.length)
         const target = reference[idx]
 

@@ -7,8 +7,7 @@ import { Heuristic, InadmissibleHeuristic } from '../services/Heuristic'
 import { BinaryHeap } from '../ds/BinaryHeap'
 import { reconstructPath } from '../services/misc'
 import { InadmissibleActionEstimate } from '../services/ActionEstimate'
-import { RedBlackNode, RedBlackTree } from '../ds/RedBlackTree'
-import chalk from 'chalk'
+import { RedBlackTree } from '../ds/RedBlackTree'
 
 class EESNode<T> {
   public readonly item: T
@@ -70,53 +69,6 @@ class EESList<T> {
     return this.cleanupList.peek() as EESNode<T>
   }
 
-  /* private repairFocal (): void {
-    // Remove nodes that no longer satisfy the invariant on focal.
-    while (this.focalList.size > 0) {
-      const node = this.focalList.peek() as EESNode<T>
-      if (!this.members.has(node)) {
-        this.focalList.pop()
-        continue
-      }
-      const bestOpen = this.peekOpen()
-      if (bestOpen == null) {
-        this.focalList.pop()
-        continue
-      }
-      if (node.fHat > this.weight * bestOpen.fHat) {
-        this.focalList.pop()
-        continue
-      }
-      break
-    }
-
-    const bestOpen = this.peekOpen()
-    if (bestOpen == null) return
-    const newThreshold = this.weight * bestOpen.fHat
-    if (newThreshold <= this.focalThreshold) {
-      this.focalThreshold = newThreshold
-      return
-    }
-
-    // Add newly eligible nodes from open.
-    let current: RedBlackNode<EESNode<T>> | null
-
-    if (this.focalBoundary == null) {
-      current = this.openList.minimum()
-    } else {
-      current = this.openList.successor(this.focalBoundary)
-    }
-
-    while (current != null && (current.values[0] as EESNode<T>).fHat <= newThreshold) {
-      const node = current.values[0] as EESNode<T>
-      if (this.members.has(node)) this.focalList.insert(node, node.dHat)
-      this.focalBoundary = current
-      current = this.openList.successor(current)
-    }
-
-    this.focalThreshold = newThreshold
-  } */
-
   private repairFocal (): void {
     // Step 1: clean invalid nodes from heap
     while (this.focalList.size > 0) {
@@ -148,32 +100,15 @@ class EESList<T> {
     if (bestOpen == null) return
 
     const threshold = this.weight * bestOpen.fHat
-
-    // We rebuild from open minimum using successor traversal,
-    // but WITHOUT relying on cached boundary state.
     let current = this.openList.minimum()
 
     while (current != null) {
       const node = current.values[0] as EESNode<T>
-
       if (node.fHat > threshold) break
-
-      if (this.members.has(node)) {
-        // avoid duplicates in focal heap
-        this.focalList.insert(node, node.dHat)
-      }
-
+      if (this.members.has(node)) this.focalList.insert(node, node.dHat)
       current = this.openList.successor(current)
     }
   }
-
-  /* private repairOpen (): void {
-    while (true) {
-      const min = this.openList.minimum()
-      if (min == null || this.members.has(min.values[0] as EESNode<T>)) return
-      this.openList.remove(min.values[0] as EESNode<T>)
-    }
-  } */
 
   private repairOpen (): void {
     while (true) {
@@ -199,7 +134,6 @@ class EESList<T> {
     this.repairFocal()
     const result = this.focalList.pop() as EESNode<T>
     this.members.delete(result)
-    // console.log(chalk.red(`${(result.item as any).x as number},${(result.item as any).y as number} <- ${chalk.yellow(this.members.size)}`))
     return result
   }
 
@@ -210,7 +144,6 @@ class EESList<T> {
     const node = min.values[0] as EESNode<T>
     this.openList.remove(node)
     this.members.delete(node)
-    // console.log(chalk.red(`${(node.item as any).x as number},${(node.item as any).y as number} <- ${chalk.yellow(this.members.size)}`))
     return node
   }
 
@@ -219,12 +152,10 @@ class EESList<T> {
     this.repairCleanup()
     const result = this.cleanupList.pop() as EESNode<T>
     this.members.delete(result)
-    // console.log(chalk.red(`${(result.item as any).x as number},${(result.item as any).y as number} <- ${chalk.yellow(this.members.size)}`))
     return result
   }
 
   insert (item: T, g: number, h: number, hHat: number, dHat: number): void {
-    // console.log(chalk.green(`${(item as any).x as number},${(item as any).y as number} -> ${chalk.yellow(this.members.size)}`))
     const node = new EESNode(item, g, h, hHat, dHat)
 
     this.members.add(node)
@@ -312,9 +243,6 @@ export const explicitEstimationSearch: Algorithm = function * (
       }
     }
   }
-
-  // console.log({ nodesExpanded, nodesGenerated })
-  // process.exit(1)
 }
 
 explicitEstimationSearch.availableOpts = new Set(['epsilon'])

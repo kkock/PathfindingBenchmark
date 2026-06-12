@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import type { Algorithm, SearchService } from '../Algorithm'
 
 import algorithms from '../algorithms/algorithms'
@@ -56,8 +58,8 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
         case Heuristic.name:
           if (serviceValue === 'euclidean') {
             services.get(Heuristic)!.push(euclideanHeuristic)
-          } else if (/^euclidean\([\d\.]+\)$/.test(serviceValue)) {
-            const match = /^euclidean\(([\d\.]+)\)$/.exec(serviceValue) as RegExpExecArray
+          } else if (/^euclidean\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^euclidean\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(Heuristic)!.push(getWeightedHeuristic(weight, euclideanHeuristic))
           } else {
@@ -68,8 +70,8 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
         case InadmissibleHeuristic.name:
           if (serviceValue === 'euclidean') {
             services.get(InadmissibleHeuristic)!.push(euclideanHeuristic)
-          } else if (/^euclidean\([\d\.]+\)$/.test(serviceValue)) {
-            const match = /^euclidean\(([\d\.]+)\)$/.exec(serviceValue) as RegExpExecArray
+          } else if (/^euclidean\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^euclidean\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(InadmissibleHeuristic)!.push(getWeightedHeuristic(weight, euclideanHeuristic))
           } else {
@@ -80,14 +82,14 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
         case Cost.name:
           if (serviceValue === 'euclidean') {
             services.get(Cost)!.push(euclideanCost)
-          } else if (/^euclidean\([\d\.]+\)$/.test(serviceValue)) {
-            const match = /^euclidean\(([\d\.]+)\)$/.exec(serviceValue) as RegExpExecArray
+          } else if (/^euclidean\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^euclidean\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(Cost)!.push(getWeightedCost(weight, euclideanCost))
           } else if (serviceValue === 'euclidean-guards') {
             services.get(Cost)!.push(guardsCost)
-          } else if (/^euclidean-guards\([\d\.]+\)$/.test(serviceValue)) {
-            const match = /^euclidean-guards\(([\d\.]+)\)$/.exec(serviceValue) as RegExpExecArray
+          } else if (/^euclidean-guards\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^euclidean-guards\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(Cost)!.push(getWeightedCost(weight, guardsCost))
           } else {
@@ -98,14 +100,14 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
         case ApproximateCost.name:
           if (serviceValue === 'euclidean') {
             services.get(ApproximateCost)!.push(euclideanCost)
-          } else if (/^euclidean\([\d\.]+\)$/.test(serviceValue)) {
-            const match = /^euclidean\(([\d\.]+)\)$/.exec(serviceValue) as RegExpExecArray
+          } else if (/^euclidean\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^euclidean\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(ApproximateCost)!.push(getWeightedCost(weight, euclideanCost))
           } else if (serviceValue === 'euclidean-guards') {
             services.get(ApproximateCost)!.push(guardsCost)
-          } else if (/^euclidean-guards\([\d\.]+\)$/.test(serviceValue)) {
-            const match = /^euclidean-guards\(([\d\.]+)\)$/.exec(serviceValue) as RegExpExecArray
+          } else if (/^euclidean-guards\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^euclidean-guards\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(ApproximateCost)!.push(getWeightedCost(weight, guardsCost))
           } else {
@@ -116,14 +118,14 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
         case ActionEstimate.name:
           if (serviceValue === 'chebyshev') {
             services.get(ActionEstimate)!.push(euclideanHeuristic)
-          } else if (/^chebyshev\([\d\.]+\)$/.test(serviceValue)) {
-            const match = /^chebyshev\(([\d\.]+)\)$/.exec(serviceValue) as RegExpExecArray
+          } else if (/^chebyshev\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^chebyshev\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(ActionEstimate)!.push(getWeightedHeuristic(weight, euclideanHeuristic))
           } else if (serviceValue === 'manhattan') {
             services.get(ActionEstimate)!.push(euclideanHeuristic)
-          } else if (/^manhattan\([\d\.]+\)$/.test(serviceValue)) {
-            const match = /^manhattan\(([\d\.]+)\)$/.exec(serviceValue) as RegExpExecArray
+          } else if (/^manhattan\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^manhattan\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(ActionEstimate)!.push(getWeightedHeuristic(weight, euclideanHeuristic))
           } else {
@@ -134,14 +136,14 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
         case InadmissibleActionEstimate.name:
           if (serviceValue === 'chebyshev') {
             services.get(InadmissibleActionEstimate)!.push(euclideanHeuristic)
-          } else if (/^chebyshev\([\d\.]+\)$/.test(serviceValue)) {
-            const match = /^chebyshev\(([\d\.]+)\)$/.exec(serviceValue) as RegExpExecArray
+          } else if (/^chebyshev\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^chebyshev\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(InadmissibleActionEstimate)!.push(getWeightedHeuristic(weight, euclideanHeuristic))
           } else if (serviceValue === 'manhattan') {
             services.get(InadmissibleActionEstimate)!.push(euclideanHeuristic)
-          } else if (/^manhattan\([\d\.]+\)$/.test(serviceValue)) {
-            const match = /^manhattan\(([\d\.]+)\)$/.exec(serviceValue) as RegExpExecArray
+          } else if (/^manhattan\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^manhattan\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(InadmissibleActionEstimate)!.push(getWeightedHeuristic(weight, euclideanHeuristic))
           } else {

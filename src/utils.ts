@@ -16,7 +16,7 @@ export type ExtendedParseArgsConfig = ParseArgsConfig & {
   }
 }
 
-export function formatHelp ({ options = {}, positional = {}, allowPositionals = true }) {
+export function formatHelp ({ options = {}, positional = {}, allowPositionals = true }): string {
   const lines = []
 
   lines.push(chalk.bold('Usage:'))
@@ -31,7 +31,7 @@ export function formatHelp ({ options = {}, positional = {}, allowPositionals = 
       const flags = []
 
       flags.push(chalk.cyan(`--${name}`))
-      if (opt.short) flags.push(chalk.cyan(`-${opt.short}`))
+      if (opt.short != null) flags.push(chalk.cyan(`-${opt.short}`))
 
       const type = chalk.yellow(opt.type ?? 'string')
       const required = (opt.required ?? false) ? ' (required)' : null
@@ -40,7 +40,7 @@ export function formatHelp ({ options = {}, positional = {}, allowPositionals = 
         : opt.defaultDescription !== undefined
           ? ` (${opt.defaultDescription})`
           : '')
-      const description = opt.description
+      const description = opt.description != null
         ? `  ${opt.description}`
         : ''
 
@@ -55,7 +55,7 @@ export function formatHelp ({ options = {}, positional = {}, allowPositionals = 
 
     const positionalEntries: Array<[string, ExtendedOptionDescriptor]> = Object.entries(positional)
     for (const [name, spec] of positionalEntries) {
-      const desc = spec.description ? ` - ${spec.description}` : ''
+      const desc = spec.description != null ? ` - ${spec.description}` : ''
       lines.push(`  ${chalk.cyan(name)}${desc}`)
     }
     lines.push('')
@@ -63,28 +63,6 @@ export function formatHelp ({ options = {}, positional = {}, allowPositionals = 
 
   return lines.join('\n')
 }
-
-/* export function generateCombinations<V> (input: Record<string, readonly V[]>): Array<Record<string, V>> {
-  const keys = Object.keys(input)
-  return keys.reduce<Array<Record<string, V>>>((combinations, key) => {
-    const values = input[key] as any[]
-    return combinations.flatMap(combination => values.map(value => ({ ...combination, [key]: value })))
-  }, [{}])
-} */
-
-/* export function generateMapCombinations<K, V> (input: ReadonlyMap<K, readonly V[]>): Array<Map<K, V>> {
-  return [...input.entries()].reduce<Array<Map<K, V>>>(
-    (combinations, [key, values]) =>
-      combinations.flatMap(combination =>
-        values.map(value => {
-          const next = new Map(combination)
-          next.set(key, value)
-          return next
-        })
-      ),
-    [new Map()]
-  )
-} */
 
 export function generateCombinations<V> (input: Record<string, readonly V[]>): Array<Record<string, V>>
 export function generateCombinations<K, V> (input: ReadonlyMap<K, readonly V[]>): Array<Map<K, V>>
@@ -110,5 +88,5 @@ export function generateCombinations<K, V> (input: Record<string, readonly V[]> 
 }
 
 export function getMedianElement<T> (array: T[]): T {
-  return array[Math.floor(array.length / 2)]!
+  return array[Math.floor(array.length / 2)] as T
 }

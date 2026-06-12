@@ -10,8 +10,8 @@ export class BinaryHeap<T> {
 
     while (hole > 0) {
       const parent = Math.floor((hole - 1) / 2)
-      if (this.heap[parent]![1] <= priority) break
-      this.heap[hole] = this.heap[parent]!
+      if ((this.heap[parent] as Node<T>)[1] <= priority) break
+      this.heap[hole] = this.heap[parent] as Node<T>
       hole = parent
     }
 
