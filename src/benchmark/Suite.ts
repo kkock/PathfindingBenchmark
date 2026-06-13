@@ -174,7 +174,8 @@ export function prepareSuites (
   const graphs = new Map<string, Graph>()
   const result: Suite[] = []
 
-  scenFile = scenFile.slice(0, 100)
+  // scenFile = scenFile.slice(0, 100)
+  scenFile = scenFile.slice(-20)
 
   for (const scenLine of scenFile) {
     if (!mapFilePaths.has(scenLine.map)) throw new RangeError(`Map '${scenLine.map}' could not be found in the provided map directory`)

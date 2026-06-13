@@ -185,7 +185,7 @@ function stringifyOptions (algorithm: string, services: { [key: string]: string 
     result.push(
       typeof value === 'string'
         ? `${key}='${value}'`
-        : `${key}=${value}` // eslint-disable-line @typescript-eslint/restrict-template-expressions
+        : `${key}=${String(value)}`
     )
   }
 

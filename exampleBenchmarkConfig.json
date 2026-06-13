@@ -4,17 +4,18 @@
   "outPath": "./logs/result.log",
   "guards": true,
   "algorithms": [
+    "explicitEstimationSearch",
     "aStar",
     "anytimeAStar",
     "anytimeDynamicallyWeightedAStar",
-    "explicitEstimationSearch",
     "focalBeamAStar",
     "bidirectionalAStar",
     "anytimeBidirectionalAStar"
   ],
   "services": {
     "Heuristic": [
-      "euclidean(0.25)"
+      "euclidean(0.25)",
+      "euclidean(1)"
     ],
     "Cost": [
       "euclidean-guards(1)"
@@ -23,7 +24,8 @@
       "euclidean(1)"
     ],
     "InadmissibleHeuristic": [
-      "euclidean(1)"
+      "euclidean(1)",
+      "euclidean(2)"
     ],
     "ActionEstimate": [
       "manhattan(1)"

@@ -145,23 +145,13 @@ function main (): void {
 
     fs.writeFileSync(
       values['out-path'] as string, JSON.stringify(results)
-      // results.map(result => JSON.stringify(result)).join('\n')
     )
   } catch (err) {
     if (err instanceof Error) {
       console.error(chalk.red(err.message))
       throw err
     } else {
-      /**
-       * I'm using `as any` with a linter suppression directive here. Even
-       * though I could just say `as string`, that'd be a lie. It can be
-       * anything other than `Error`. But this method of converting to string
-       * doesn't throw so it's fine.
-       * I hate that I have to suppress the linter to avoid lying but that's
-       * what I get for using standard style I guess. I like it but a few of
-       * the rules are rather senseless.
-       */
-      console.error(chalk.red(`${err as any}`)) // eslint-disable-line @typescript-eslint/restrict-template-expressions
+      console.error(chalk.red(String(err)))
     }
     console.log(formatHelp(parseArgsConfig))
     process.exit(1)
