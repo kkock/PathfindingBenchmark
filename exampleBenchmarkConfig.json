@@ -9,8 +9,8 @@
     "anytimeDynamicallyWeightedAStar",
     "explicitEstimationSearch",
     "focalBeamAStar",
-    "beamSearch",
-    "beamAStar"
+    "bidirectionalAStar",
+    "anytimeBidirectionalAStar"
   ],
   "services": {
     "Heuristic": [
@@ -36,6 +36,13 @@
     "epsilon": [
       1,
       3
+    ],
+    "beamSize": [
+      20,
+      200
+    ],
+    "dynamicBeamSize": [
+      200
     ]
   }
 }

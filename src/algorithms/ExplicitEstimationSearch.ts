@@ -7,7 +7,8 @@ import { Heuristic, InadmissibleHeuristic } from '../services/Heuristic'
 import { BinaryHeap } from '../ds/BinaryHeap'
 import { reconstructPath } from '../services/misc'
 import { InadmissibleActionEstimate } from '../services/ActionEstimate'
-import { RedBlackTree } from '../ds/RedBlackTree'
+// import { RedBlackTree } from '../ds/RedBlackTree'
+import { OrderedSet } from '@js-sdsl/ordered-set'
 
 class EESNode<T> {
   public readonly item: T
@@ -38,7 +39,8 @@ class EESNode<T> {
 
 class EESList<T> {
   focalList = new BinaryHeap<EESNode<T>>() // Ordered on d-hat
-  openList = new RedBlackTree<EESNode<T>>((a, b) => a.fHat - b.fHat) // Ordered on f-hat
+  // openList = new RedBlackTree<EESNode<T>>((a, b) => a.fHat - b.fHat) // Ordered on f-hat
+  openList = new OrderedSet<EESNode<T>>([], (a, b) => a.fHat - b.fHat) // Ordered on f-hat
   cleanupList = new BinaryHeap<EESNode<T>>() // Ordered on f
   // private focalBoundary: RedBlackNode<EESNode<T>> | null = null
   // private focalThreshold = -Infinity
@@ -60,7 +62,8 @@ class EESList<T> {
 
   private peekOpen (): EESNode<T> | undefined {
     this.repairOpen()
-    return this.openList.minimum()?.values[0]
+    // this.openList.begin()
+    return this.openList.begin().pointer// ?.values[0]
   }
 
   private peekCleanup (): EESNode<T> | undefined {
@@ -100,26 +103,32 @@ class EESList<T> {
     if (bestOpen == null) return
 
     const threshold = this.weight * bestOpen.fHat
-    let current = this.openList.minimum()
+    let current = this.openList.begin()// .pointer
+    // this.openList.minimum()
 
     while (current != null) {
-      const node = current.values[0] as EESNode<T>
+      // const node = current.values[0] as EESNode<T>
+      const node = current.pointer
       if (node.fHat > threshold) break
       if (this.members.has(node)) this.focalList.insert(node, node.dHat)
-      current = this.openList.successor(current)
+      // current = this.openList.successor(current)
+      current = current.next()
     }
   }
 
   private repairOpen (): void {
     while (true) {
-      const min = this.openList.minimum()
+      // const min = this.openList.minimum()
+      const min = this.openList.begin()
       if (min == null) return
 
-      const node = min.values[0] as EESNode<T>
+      // const node = min.values[0] as EESNode<T>
+      const node = min.pointer
 
       if (this.members.has(node)) return
 
-      this.openList.remove(node)
+      // this.openList.remove(node)
+      this.openList.eraseElementByKey(node)
     }
   }
 
@@ -139,10 +148,13 @@ class EESList<T> {
 
   private popOpen (): EESNode<T> | undefined {
     this.repairOpen()
-    const min = this.openList.minimum()
+    // const min = this.openList.minimum()
+    const min = this.openList.begin()
     if (min == null) return undefined
-    const node = min.values[0] as EESNode<T>
-    this.openList.remove(node)
+    // const node = min.values[0] as EESNode<T>
+    const node = min.pointer
+    // this.openList.remove(node)
+    this.openList.eraseElementByKey(node)
     this.members.delete(node)
     return node
   }
