@@ -4,13 +4,10 @@
   "outPath": "./logs/result.log",
   "guards": true,
   "algorithms": [
-    "explicitEstimationSearch",
-    "aStar",
     "anytimeAStar",
-    "anytimeDynamicallyWeightedAStar",
     "focalBeamAStar",
     "bidirectionalAStar",
-    "anytimeBidirectionalAStar"
+    "anytimeRepairingAStar"
   ],
   "services": {
     "Heuristic": [

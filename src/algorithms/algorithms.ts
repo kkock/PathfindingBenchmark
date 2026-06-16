@@ -8,6 +8,7 @@ import { beamAStar } from './BeamAStar'
 import { explicitEstimationSearch } from './ExplicitEstimationSearch'
 import { bidirectionalAStar } from './BidirectionalAStar'
 import { anytimeBidirectionalAStar } from './AnytimeBidirectionalAStar'
+import { anytimeRepairingAStar } from './AnytimeRepairingAStar'
 
 export default [
   aStar,
@@ -19,7 +20,8 @@ export default [
   beamAStar,
   explicitEstimationSearch,
   bidirectionalAStar,
-  anytimeBidirectionalAStar
+  anytimeBidirectionalAStar,
+  anytimeRepairingAStar
 ]
 
 export { aStar } from './AStar'
@@ -32,3 +34,4 @@ export { beamAStar } from './BeamAStar'
 export { explicitEstimationSearch } from './ExplicitEstimationSearch'
 export { bidirectionalAStar } from './BidirectionalAStar'
 export { anytimeBidirectionalAStar } from './AnytimeBidirectionalAStar'
+export { anytimeRepairingAStar } from './AnytimeRepairingAStar'

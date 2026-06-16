@@ -1,6 +1,14 @@
-type Node<T> = [item: T, priority: number]
+export type Node<T> = [item: T, priority: number]
 
-export class BinaryHeap<T> {
+export interface Queue<T> {
+  insert (item: T, priority: number): boolean 
+  pop (): T | null 
+  peek (): T | null
+  peekPriority (): number | null
+  get size (): number
+}
+
+export class BinaryHeap<T> implements Queue<T> {
   private heap: Array<Node<T>> = []
 
   public insert (item: T, priority: number): boolean {
@@ -59,3 +67,4 @@ export class BinaryHeap<T> {
     this.heap[hole - 1] = tmp
   }
 }
+

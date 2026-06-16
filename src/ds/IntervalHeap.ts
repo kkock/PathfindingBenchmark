@@ -1,9 +1,9 @@
-function bool2Num (boolean: boolean): 0 | 1 {
+export function bool2Num (boolean: boolean): 0 | 1 {
   return Number(boolean) as 0 | 1
 }
 
-type Entry<T> = [item: T, priority: number]
-type Node<T> = [min: Entry<T>, max: Entry<T>]
+export type Entry<T> = [item: T, priority: number]
+export type Node<T> = [min: Entry<T>, max: Entry<T>]
 
 export class IntervalHeap<T> {
   private readonly heap: Array<Node<T>>
