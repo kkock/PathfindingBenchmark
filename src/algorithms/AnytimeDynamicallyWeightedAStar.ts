@@ -4,7 +4,7 @@ import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
 import { Heuristic } from '../services/Heuristic'
-import { BinaryHeap } from '../ds/BinaryHeap'
+import { KeyedBinaryHeap } from '../ds/KeyedBinaryHeap'
 import { reconstructPath } from '../services/misc'
 
 /**
@@ -27,7 +27,7 @@ export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
   const dScores = new Map<Vertex, number>()
 
   const cameFrom = new Map<Vertex, Vertex>()
-  const openSet = new BinaryHeap<Vertex>()
+  const openSet = new KeyedBinaryHeap<Vertex>()
   openSet.insert(source, h.get(graph, source.x, source.y, goal.x, goal.y))
   gScores.set(source, 0)
   dScores.set(source, 0)
@@ -62,7 +62,7 @@ export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
         gScores.set(nextVertex, tentativeCost)
         dScores.set(nextVertex, dScore)
         cameFrom.set(nextVertex, vertex)
-        openSet.insert(nextVertex, fScore)
+        openSet.insertOrUpdate(nextVertex, fScore)
         nodesGenerated++
       }
     }

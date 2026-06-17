@@ -4,7 +4,7 @@ import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
 import { Heuristic } from '../services/Heuristic'
-import { BinaryHeap } from '../ds/BinaryHeap'
+import { KeyedBinaryHeap } from '../ds/KeyedBinaryHeap'
 
 function reconstructBidirectionalPath (
   forwardCameFrom: Map<Vertex, Vertex>,
@@ -51,8 +51,8 @@ export const anytimeBidirectionalAStar: Algorithm = function * (
   const backwardG = new Map<Vertex, number>()
   const forwardCameFrom = new Map<Vertex, Vertex>()
   const backwardCameFrom = new Map<Vertex, Vertex>()
-  const forwardOpen = new BinaryHeap<Vertex>()
-  const backwardOpen = new BinaryHeap<Vertex>()
+  const forwardOpen = new KeyedBinaryHeap<Vertex>()
+  const backwardOpen = new KeyedBinaryHeap<Vertex>()
 
   forwardG.set(source, 0)
   backwardG.set(goal, 0)
@@ -103,7 +103,7 @@ export const anytimeBidirectionalAStar: Algorithm = function * (
           forwardG.set(nextVertex, tentativeCost)
           forwardCameFrom.set(nextVertex, fwdVertex)
 
-          forwardOpen.insert(
+          forwardOpen.insertOrUpdate(
             nextVertex,
             tentativeCost + epsilon * h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y)
           )
@@ -169,7 +169,7 @@ export const anytimeBidirectionalAStar: Algorithm = function * (
           backwardG.set(nextVertex, tentativeCost)
           backwardCameFrom.set(nextVertex, bwdVertex)
 
-          backwardOpen.insert(
+          backwardOpen.insertOrUpdate(
             nextVertex,
             tentativeCost + epsilon * h.get(graph, nextVertex.x, nextVertex.y, source.x, source.y)
           )

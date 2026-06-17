@@ -3,7 +3,7 @@ import { KeyedIntervalHeap } from '../src/ds/KeyedIntervalHeap'
 import { getSeededPrng } from './utils'
 
 describe('KeyedIntervalHeap', () => {
-  /*test('is empty when created', () => {
+  test('is empty when created', () => {
     const heap = new KeyedIntervalHeap<string>()
 
     expect(heap.size).toBe(0)
@@ -300,9 +300,7 @@ describe('KeyedIntervalHeap', () => {
         expect(heap.max()).toBe(oracle[oracle.length - 1])
 
         expect(heap.minPriority()).toBe(oracle[0])
-        expect(heap.maxPriority()).toBe(
-          oracle[oracle.length - 1]
-        )
+        expect(heap.maxPriority()).toBe(oracle[oracle.length - 1])
       }
     }
 
@@ -343,7 +341,7 @@ describe('KeyedIntervalHeap', () => {
 
       assertState()
     }
-  })*/
+  })
 
   test('matches a Map oracle under randomized insertOrUpdate operations', () => {
     const heap = new KeyedIntervalHeap<number>()
@@ -365,11 +363,6 @@ describe('KeyedIntervalHeap', () => {
       let maxItem: number | undefined
       let maxPriority = -Infinity
       for (const [item, priority] of oracle) {
-        // Check for pointer corruption
-        expect(heap.has(item)).toBe(true)
-        const {index, side} = (heap as any).positions.get(item)
-        expect((heap as any).heap[index][side][0]).toBe(item)
-
         if (priority < minPriority) {
           minPriority = priority
           minItem = item
@@ -384,10 +377,6 @@ describe('KeyedIntervalHeap', () => {
       expect(heap.max()).toBe(maxItem)
       expect(heap.minPriority()).toBe(minPriority)
       expect(heap.maxPriority()).toBe(maxPriority)
-
-      for (const key of (heap as any).positions.keys()) {
-        expect(oracle.has(key)).toBe(true)
-      }
     }
 
     const rand = getSeededPrng()
@@ -400,7 +389,10 @@ describe('KeyedIntervalHeap', () => {
     for (let i = 0; i < ITERATIONS; i++) {
       const operation = rand()
       if (oracle.size === 0 || operation < 0.60) {
+        //console.log((heap as any).heap)
+        // Insert or update item
         const item = Math.floor(rand() * ITEMS)
+        //console.log(`insert/update item: ${item}`)
 
         // Generate a priority that is not currently used by another item.
         let priority: number
@@ -415,12 +407,13 @@ describe('KeyedIntervalHeap', () => {
           }
           if (!inUse) break
         }
-        console.log('Add/Update Item', {item, priority}, heap.size)
         expect(oracle.has(item)).toBe(heap.has(item))
         heap.insertOrUpdate(item, priority)
         oracle.set(item, priority)
-        console.log((heap as any).heap)
-      } else if (operation < 0.80) {
+      } else if (operation < 0.75) {
+        //console.log((heap as any).heap)
+        //console.log(`deleting min`)
+        // Delete min item
         let minItem: number | undefined
         let minPriority = Infinity
         for (const [item, priority] of oracle) {
@@ -431,11 +424,11 @@ describe('KeyedIntervalHeap', () => {
         }
         heap.deleteMin()
         oracle.delete(minItem!)
-
-        console.log('Deleted Item', minItem)
-        console.log((heap as any).heap)
         expect(heap.has(minItem!)).toBe(false)
-      } else {
+      } else if (operation < 0.90) {
+        //console.log((heap as any).heap)
+        //console.log(`deleting max`)
+        // Delete max item
         let maxItem: number | undefined
         let maxPriority = -Infinity
         for (const [item, priority] of oracle) {
@@ -446,36 +439,22 @@ describe('KeyedIntervalHeap', () => {
         }
         heap.deleteMax()
         oracle.delete(maxItem!)
-
-        console.log('Deleted Item', maxItem)
-        console.log((heap as any).heap)
         expect(heap.has(maxItem!)).toBe(false)
+      } else {
+        //console.log((heap as any).heap)
+        // Delete random item
+        const items = [...oracle.keys()]
+        const item = items[Math.floor(rand() * items.length)]!
+        //console.log(`deleting ${item}...`)
+        expect(heap.has(item)).toBe(true)
+        const removed = heap.remove(item)
+        //console.log((heap as any).heap)
+        expect(removed).toBe(true)
+        oracle.delete(item)
+        expect(heap.has(item)).toBe(false)
       }
       
       assertState()
     }
   })
-
-  /*test('', () => {
-    const heap = new KeyedIntervalHeap<string>()
-    heap.insert('a', 50)
-
-    expect(heap.min()).toBe('a')
-    expect(heap.max()).toBe('a')
-
-    heap.insert('b', -50)
-
-    expect(heap.min()).toBe('b')
-    expect(heap.max()).toBe('a')
-
-    heap.insert('c', 0)
-
-    expect(heap.min()).toBe('b')
-    expect(heap.max()).toBe('a')
-
-    heap.update('a', -100)
-
-    expect(heap.min()).toBe('a')
-    expect(heap.max()).toBe('c')
-  })*/
 })

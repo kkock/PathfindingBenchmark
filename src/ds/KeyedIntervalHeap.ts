@@ -6,9 +6,118 @@ type Position = {
 }
 
 export class KeyedIntervalHeap<T> {
+  debugCheck(): void {
+    const seen = new Set<T>()
+
+    if (this.heap.length === 0) {
+      if (this.positions.size !== 0) {
+        throw new Error('positions not empty while heap is empty')
+      }
+      return
+    }
+
+    for (let i = 0; i < this.heap.length; i++) {
+      const node = this.heap[i]!
+
+      const isLast = i === this.heap.length - 1
+      const hasMax = this.full || !isLast
+
+      //
+      // Check occupied slots.
+      //
+      const occupiedSides: Array<0 | 1> = hasMax ? [0, 1] : [0]
+
+      for (const side of occupiedSides) {
+        const entry = node[side]!
+
+        if (seen.has(entry[0])) {
+          throw new Error(
+            `duplicate item encountered: ${String(entry[0])}`
+          )
+        }
+
+        seen.add(entry[0])
+
+        const pos = this.positions.get(entry[0])
+
+        if (!pos) {
+          throw new Error(
+            `missing position for item ${String(entry[0])}`
+          )
+        }
+
+        if (pos.index !== i || pos.side !== side) {
+          throw new Error(
+            `position mismatch for item ${String(entry[0])}: `
+            + `expected (${i},${side}), `
+            + `got (${pos.index},${pos.side})`
+          )
+        }
+      }
+
+      //
+      // Interval invariant.
+      //
+      if (hasMax && node[0]![1] > node[1]![1]) {
+        throw new Error(
+          `node ${i} violates interval ordering: `
+          + `${node[0]![1]} > ${node[1]![1]}`
+        )
+      }
+
+      //
+      // Parent relationships.
+      //
+      if (i > 0) {
+        const parent = Math.floor((i + 1) / 2) - 1
+
+        if (this.heap[parent]![0]![1] > node[0]![1]) {
+          throw new Error(
+            `min-heap violation: parent ${parent} (${this.heap[parent]![0]![1]}) `
+            + `> child ${i} (${node[0]![1]})`
+          )
+        }
+
+        if (hasMax) {
+          const parentHasMax =
+            this.full || parent !== this.heap.length - 1
+
+          const parentMax = parentHasMax
+            ? this.heap[parent]![1]!
+            : this.heap[parent]![0]!
+
+          if (parentMax[1] < node[1]![1]) {
+            throw new Error(
+              `max-heap violation: parent ${parent} (${parentMax[1]}) `
+              + `< child ${i} (${node[1]![1]})`
+            )
+          }
+        }
+      }
+    }
+
+    //
+    // Check positions doesn't contain extra entries.
+    //
+    if (seen.size !== this.positions.size) {
+      throw new Error(
+        `positions contains extra items: `
+        + `seen=${seen.size}, positions=${this.positions.size}`
+      )
+    }
+
+    //
+    // Check reported size.
+    //
+    if (seen.size !== this.size) {
+      throw new Error(
+        `size mismatch: size=${this.size}, actual=${seen.size}`
+      )
+    }
+  }
+
   private readonly positions = new Map<T, Position>()
   private readonly heap: Array<Node<T>>
-  private _size: number = 0
   private full: boolean = true
 
   constructor () {
@@ -19,6 +128,32 @@ export class KeyedIntervalHeap<T> {
     return this.positions.has(item)
   }
 
+  min (): T | null {
+    if (this.heap.length === 0) return null
+    return this.heap[0]![0]![0]
+  }
+
+  max (): T | null {
+    if (this.heap.length === 0) return null
+    if (this.heap.length === 1) return this.heap[0]![bool2Num(this.full)]![0]
+    return this.heap[0]![1]![0]
+  }
+
+  minPriority (): number | null {
+    if (this.heap.length === 0) return null
+    return this.heap[0]![0]![1]
+  }
+
+  maxPriority (): number | null {
+    if (this.heap.length === 0) return null
+    if (this.heap.length === 1) return this.heap[0]![bool2Num(this.full)]![1]
+    return this.heap[0]![1]![1]
+  }
+
+  get size (): number {
+    return this.heap.length * 2 - bool2Num(!this.full)
+  }
+
   insertOrUpdate (item: T, priority: number): void {
     if (this.positions.has(item)) {
       return this.update(item, priority)
@@ -27,242 +162,260 @@ export class KeyedIntervalHeap<T> {
     }
   }
 
-  update (item: T, newPriority: number): void {
+  update (item: T, priority: number): void {
     const pos = this.positions.get(item)
     if (!pos) return
 
     const { index, side } = pos
-    const entry = this.heap[index]![side]
+    this.heap[index]![side]![1] = priority
 
-    //const oldPriority = entry[1]
-    //this.setEntry(index, side, )
-    entry[1] = newPriority
-    this.fix(index)
-    //if (newPriority < oldPriority) {
-    //  this.fixAfterDecrease(index, side)
-    //} else if (newPriority > oldPriority) {
-    //  this.fixAfterIncrease(index, side)
-    //}
-  }
-
-  private fix (index: number): void {
-    if (this.heap[index]![1][1] < this.heap[index]![0][1]) {
+    // Repair heap
+    const max = this.maxEntryAt(index)
+    if (this.heap[index]![max]![1] < this.heap[index]![0]![1]) {
       this.invertNode(index)
     }
-  
-    this.bubbleMinUpFrom(index)
-    this.bubbleMinDownFrom(index)
-    this.bubbleMaxUpFrom(index)
-    this.bubbleMaxDownFrom(index)
+
+    this.bubbleMinUp(index)
+    this.bubbleMinDown(index)
+    this.bubbleMinUp(index)
+
+    this.bubbleMaxUp(index)
+    this.bubbleMaxDown(index)
+    this.bubbleMaxUp(index)
+
+    this.debugCheck()
   }
 
-  /*private fixAfterDecrease (index: number, side: 0 | 1): void {
-    if (side === 0) {
-      this.bubbleMinUpFrom(index)
-    } else {
-      if (this.heap[index]![1][1] < this.heap[index]![0][1]) {
-        this.invertNode(index)
-        this.bubbleMinUpFrom(index)
-      } else {
-        this.bubbleMaxDownFrom(index)
-      }
+  remove (item: T): boolean {
+    if (!this.positions.has(item)) return false
+    const pos = this.positions.get(item)!
+    
+    const { index, side } = pos
+
+    if (index === 0) {
+      // Case 1: item is already at the top.
+      if (side === 0) this.deleteMin()
+      else this.deleteMax()
+      //this.debugCheck()
+      return true
     }
-  }
 
-  private fixAfterIncrease (index: number, side: 0 | 1): void {
-    if (side === 0) {
-      this.bubbleMaxUpFrom(index)
-    } else {
-      if (this.heap[index]![0][1] > this.heap[index]![1][1]) {
-        this.invertNode(index)
-        this.bubbleMaxUpFrom(index)
+    const entry = this.heap[index]![side]!
+    const lastIndex = this.heap.length - 1
+
+    if (index === lastIndex) {
+      // Case 2: item is at the bottom.
+      if (this.full) {
+        this.removeEntry(entry)
+        if (side === 0) {
+          this.setEntry(lastIndex, 0, this.heap[lastIndex]![1]!)
+        }
+        this.heap[lastIndex]![1] = null
       } else {
-        this.bubbleMinDownFrom(index)
+        this.removeEntry(entry)
+        this.heap.length--
       }
+      this.full = !this.full
+      //this.debugCheck()
+      return true
     }
-  }*/
 
-  min (): T | null {
-    if (this._size === 0) return null
-    return (this.heap[0] as Node<T>)[0][0]
-  }
+    // Case 3: item is in the middle of the heap.
+    if (this.full) {
+      this.swapEntries(index, side, lastIndex, 1)
+      this.removeEntry(entry)
+      this.heap[lastIndex]![1] = null
+    } else {
+      this.swapEntries(index, side, lastIndex, 0)
+      this.removeEntry(entry)
+      this.heap.length--
+    }
 
-  max (): T | null {
-    if (this._size === 0) return null
-    if (this._size === 1) return (this.heap[0] as Node<T>)[bool2Num(this.full)][0]
-    return (this.heap[0] as Node<T>)[1][0]
-  }
+    this.full = !this.full
 
-  minPriority (): number | null {
-    if (this._size === 0) return null
-    return (this.heap[0] as Node<T>)[0][1]
-  }
+    if (this.full && this.heap[index]![0]![1] > this.heap[index]![1]![1]) {
+      this.invertNode(index)
+    }
+    
+    this.bubbleMinUp(index)
+    this.bubbleMinDown(index)
+    this.bubbleMinUp(index)
 
-  maxPriority (): number | null {
-    if (this._size === 0) return null
-    if (this._size === 1) return (this.heap[0] as Node<T>)[bool2Num(this.full)][1]
-    return (this.heap[0] as Node<T>)[1][1]
-  }
+    this.bubbleMaxUp(index)
+    this.bubbleMaxDown(index)
+    this.bubbleMaxUp(index)
 
-  get size (): number {
-    return this._size * 2 - bool2Num(!this.full)
+    //this.debugCheck()
+    return true
   }
 
   insert (item: T, priority: number): void {
-    const entry: Entry<T> = [item, priority]
-
     if (this.full) {
-      if (this._size >= this.heap.length) this.heap.push([null!, null!] as Node<T>)
-      
-      const maxIndex = this._size
-      this._size++
-      this.setEntry(maxIndex, 0, entry)
-      this.bubbleMinUpFrom(maxIndex)
-      const maxItem = this.heap[maxIndex]![0]
-      if (maxItem === entry) {
-        // Item is potentially too large for the min heap.
-        this.setEntry(maxIndex, 1, maxItem)
-        this.bubbleMaxUpFrom(maxIndex)
-        this.setEntry(maxIndex, 0, this.heap[maxIndex]![1])
+      const maxIndex = this.heap.length
+      this.heap.push([null, null])
+      this.setEntry(maxIndex, 0, [item, priority])
+      this.bubbleMinUp()
+      if (this.heap[maxIndex]![0]![1] === priority) {
+        this.setEntry(maxIndex, 1, this.heap[maxIndex]![0]!)
+        this.bubbleMaxUp()
+        this.setEntry(maxIndex, 0, this.heap[maxIndex]![1]!)
+        this.heap[maxIndex]![1] = null
       }
     } else {
-      const maxIndex = this._size - 1
-
-      this.setEntry(maxIndex, 1, entry)
-      if (this.heap[maxIndex]![0][1] < this.heap[maxIndex]![1][1]) {
-        this.bubbleMaxUpFrom(maxIndex)
+      const maxIndex = this.heap.length - 1
+      this.setEntry(maxIndex, 1, [item, priority])
+      if (this.heap[maxIndex]![0]![1] < this.heap[maxIndex]![1]![1]) {
+        this.bubbleMaxUp()
       } else {
         this.invertNode(maxIndex)
-        this.bubbleMinUpFrom(maxIndex)
+        this.bubbleMinUp()
       }
     }
-
     this.full = !this.full
-  }
-
-  private removeEntry(entry: Entry<T>): void {
-    this.positions.delete(entry[0])
+    //this.debugCheck()
   }
 
   deleteMin (): void {
-    if (this._size === 0) return
+    if (this.heap.length === 0) return
+    this.removeEntry(this.heap[0]![0]!)
 
-    this.removeEntry(this.heap[0]![0])
-    const lastIndex = this._size - 1
+    const lastIndex = this.heap.length - 1
     if (this.full) {
-      this.setEntry(0, 0, this.heap[lastIndex]![1])
+      this.setEntry(0, 0, this.heap[lastIndex]![1]!)
+      this.heap[lastIndex]![1] = null
     } else {
-      this.setEntry(0, 0, this.heap[lastIndex]![0])
-      this._size--
+      if (this.heap.length > 1) this.setEntry(0, 0, this.heap[lastIndex]![0]!)
+      this.heap.length--
     }
 
     this.full = !this.full
-    if (this.size > 0) this.bubbleMinDownFrom(0)
+
+    if (this.heap.length > 0) this.bubbleMinDown()
+    //this.debugCheck()
   }
 
   deleteMax (): void {
-    if (this._size === 0) return
-
-    if (this.size === 1) {
-      this.removeEntry(this.heap[0]![0])
-      this._size = 0
-      this.full = true
+    let item
+    if (this.heap.length === 0) {
       return
-    } else if (this.size === 2) {
-      this.removeEntry(this.heap[0]![1])
-      this.full = false
-      return
-    }
-
-
-    this.removeEntry(this.heap[0]![1])
-    const lastIndex = this._size - 1
-    if (this.full) {
-      this.setEntry(0, 1, this.heap[lastIndex]![1])
+    } else if (this.size === 1) {
+      item = this.heap[0]![0]!
+      this.removeEntry(this.heap[0]![0]!)
     } else {
-      this.setEntry(0, 1, this.heap[lastIndex]![0])
-      this._size--
+      item = this.heap[0]![1]!
+      this.removeEntry(this.heap[0]![1]!)
     }
 
-    this.full = !this.full
-    if (this.size > 1) this.bubbleMaxDownFrom(0)
+    const lastIndex = this.heap.length - 1
+    if (this.full) {
+      if (this.heap.length > 1) this.setEntry(0, 1, this.heap[lastIndex]![1]!)
+      this.heap[lastIndex]![1] = null
+    } else {
+      if (this.heap.length > 1) this.setEntry(0, 1, this.heap[lastIndex]![0]!)
+      this.heap.length--
+    }
     
+    this.full = !this.full
+    if (this.heap.length > 0) this.bubbleMaxDown()
+    //this.debugCheck()
   }
 
-  private bubbleMinUpFrom (index: number): void {
-    const item = (this.heap[index] as Node<T>)[0]
-    let nextIndex = Math.floor((index + 1) / 2) - 1
+  private bubbleMinUp (minIndex: undefined | number = undefined): void {
+    if (this.heap.length === 0) return
+    minIndex ??= this.heap.length - 1
+    const minItem = this.heap[minIndex]![0]!
+    let nextIndex = Math.floor((minIndex + 1) / 2) - 1
 
-    while (index > 0 && (this.heap[nextIndex] as Node<T>)[0][1] > item[1]) {
-      this.setEntry(index, 0, (this.heap[nextIndex] as Node<T>)[0])
-      index = nextIndex
-      nextIndex = Math.floor((index + 1) / 2) - 1
+    while (minIndex > 0 && this.heap[nextIndex]![0]![1] > minItem[1]) {
+      this.setEntry(minIndex, 0, this.heap[nextIndex]![0]!)
+      minIndex = nextIndex
+      nextIndex = Math.floor((minIndex + 1) / 2) - 1
     }
 
-    this.setEntry(index, 0, item)
+    this.setEntry(minIndex, 0, minItem)
   }
 
-  private bubbleMaxUpFrom (index: number): void {
-    const item = (this.heap[index] as Node<T>)[1]
-    let nextIndex = Math.floor((index + 1) / 2) - 1
+  private bubbleMaxUp (maxIndex: undefined | number = undefined): void {
+    if (this.heap.length === 0) return
+    maxIndex ??= this.heap.length - 1
+    const maxItem = this.heap[maxIndex]![this.maxEntryAt(maxIndex)]!
+    let nextIndex = Math.floor((maxIndex + 1) / 2) - 1
 
-    while (index > 0 && (this.heap[nextIndex] as Node<T>)[1][1] < item[1]) {
-      this.setEntry(index, 1, (this.heap[nextIndex] as Node<T>)[1])
-      index = nextIndex
-      nextIndex = Math.floor((index + 1) / 2) - 1
+    while (maxIndex > 0 && this.heap[nextIndex]![this.maxEntryAt(nextIndex)]![1] < maxItem[1]) {
+      this.setEntry(maxIndex, this.maxEntryAt(maxIndex), this.heap[nextIndex]![1]!)
+      maxIndex = nextIndex
+      nextIndex = Math.floor((maxIndex + 1) / 2) - 1
     }
 
-    this.setEntry(index, 1, item)
+    this.setEntry(maxIndex, this.maxEntryAt(maxIndex), maxItem)
   }
 
-  private bubbleMinDownFrom (index: number): void {
+  private bubbleMinDown (currentIndex = 0): void {
+    if (this.heap.length === 0) return
     let minIndex
 
     do {
-      minIndex = index
-      const left = (index + 1) * 2 - 1
-      const right = (index + 1) * 2
-      if (left < this._size && (this.heap[left] as Node<T>)[0][1] < (this.heap[index] as Node<T>)[0][1]) index = left
-      if (right < this._size && (this.heap[right] as Node<T>)[0][1] < (this.heap[index] as Node<T>)[0][1]) index = right
+      minIndex = currentIndex
+      const left = (currentIndex + 1) * 2 - 1
+      const right = (currentIndex + 1) * 2
+      if (left < this.heap.length && this.heap[left]![0]![1] < this.heap[currentIndex]![0]![1]) currentIndex = left
+      if (right < this.heap.length && this.heap[right]![0]![1] < this.heap[currentIndex]![0]![1]) currentIndex = right
 
-      this.swapEntries(minIndex, 0, index, 0)
+      this.swapEntries(currentIndex, 0, minIndex, 0)
 
-      if ((this.heap[index] as Node<T>)[0][1] > (this.heap[index] as Node<T>)[1][1]) {
-        this.invertNode(index)
+      const ciMax = this.maxEntryAt(currentIndex)
+      if (this.heap[currentIndex]![0]![1] > this.heap[currentIndex]![ciMax]![1]) {
+        this.swapEntries(currentIndex, 0, currentIndex, ciMax)
       }
 
-      if ((this.heap[minIndex] as Node<T>)[0][1] > (this.heap[minIndex] as Node<T>)[1][1]) {
-        this.invertNode(minIndex)
+      const miMax = this.maxEntryAt(minIndex)
+      if (this.heap[minIndex]![0]![1] > this.heap[minIndex]![miMax]![1]) {
+        this.swapEntries(minIndex, 0, minIndex, miMax)
       }
-    } while (minIndex !== index)
+    } while (minIndex !== currentIndex)
   }
 
-  
-
-  private bubbleMaxDownFrom (index: number): void {
+  private bubbleMaxDown (currentIndex = 0): void {
+    if (this.heap.length === 0) return
     let maxIndex
-    
-    if (!this.full) {
-      (this.heap[this._size - 1] as Node<T>)[1] = (this.heap[this._size - 1] as Node<T>)[0]
-    }
 
     do {
-      maxIndex = index
-      const left = (index + 1) * 2 - 1
-      const right = (index + 1) * 2
-      if (left <= this._size - 1 && (this.heap[left] as Node<T>)[1][1] > (this.heap[index] as Node<T>)[1][1]) index = left
-      if (right <= this._size - 1 && (this.heap[right] as Node<T>)[1][1] > (this.heap[index] as Node<T>)[1][1]) index = right
+      maxIndex = currentIndex
+      const left = (currentIndex + 1) * 2 - 1
+      const right = (currentIndex + 1) * 2
 
-      this.swapEntries(maxIndex, 1, index, 1)
+      let ciMax = this.maxEntryAt(currentIndex)
 
-      if ((this.heap[index] as Node<T>)[0][1] > (this.heap[index] as Node<T>)[1][1]) {
-        this.invertNode(index)
+      if (left <= this.heap.length - 1) {
+        if (this.heap[left]![this.maxEntryAt(left)]![1] > this.heap[currentIndex]![ciMax]![1]) {
+          currentIndex = left
+        }
+      } 
+      if (right <= this.heap.length - 1) {
+        if (this.heap[right]![this.maxEntryAt(right)]![1] > this.heap[currentIndex]![ciMax]![1]) {
+          currentIndex = right
+        }
       }
 
-      if ((this.heap[maxIndex] as Node<T>)[0][1] > (this.heap[maxIndex] as Node<T>)[1][1]) {
-        this.invertNode(maxIndex)
+      ciMax = this.maxEntryAt(currentIndex)
+      let miMax = this.maxEntryAt(maxIndex)
+
+      this.swapEntries(currentIndex, ciMax, maxIndex, miMax)
+
+      if (this.heap[currentIndex]![0]![1] > this.heap[currentIndex]![ciMax]![1]) {
+        this.swapEntries(currentIndex, 0, currentIndex, ciMax)
       }
-    } while (maxIndex !== index)
+
+      if (this.heap[maxIndex]![0]![1] > this.heap[maxIndex]![miMax]![1]) {
+        this.swapEntries(maxIndex, 0, maxIndex, miMax)
+      }
+    } while (maxIndex !== currentIndex)
+  }
+
+  private maxEntryAt (index: number): 0 | 1 {
+    const node = this.heap[index]!
+    if (node[1] === null) return 0
+    return 1
   }
 
   private setEntry (index: number, side: 0 | 1, entry: Entry<T>): void {
@@ -271,14 +424,18 @@ export class KeyedIntervalHeap<T> {
   }
 
   private invertNode (index: number): void {
-    this.swapEntries(index, 0, index, 1)
+    this.swapEntries(index, 0, index, this.maxEntryAt(index))
   }
 
   private swapEntries (indexA: number, sideA: 0 | 1, indexB: number, sideB: 0 | 1): void {
     if (indexA === indexB && sideA === sideB) return
-    const entryA = (this.heap[indexA] as Node<T>)[sideA]
-    const entryB = (this.heap[indexB] as Node<T>)[sideB]
+    const entryA = this.heap[indexA]![sideA]!
+    const entryB = this.heap[indexB]![sideB]!
     this.setEntry(indexA, sideA, entryB)
     this.setEntry(indexB, sideB, entryA)
+  }
+
+  private removeEntry (entry: Entry<T>): void {
+    this.positions.delete(entry[0])
   }
 }

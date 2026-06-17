@@ -4,7 +4,7 @@ import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
 import { Heuristic, InadmissibleHeuristic } from '../services/Heuristic'
-import { BinaryHeap } from '../ds/BinaryHeap'
+import { KeyedBinaryHeap } from '../ds/KeyedBinaryHeap'
 import { reconstructPath } from '../services/misc'
 import { InadmissibleActionEstimate } from '../services/ActionEstimate'
 import { RedBlackTree } from '../ds/RedBlackTree'
@@ -37,9 +37,9 @@ class EESNode<T> {
 }
 
 class EESList<T> {
-  focalList = new BinaryHeap<EESNode<T>>() // Ordered on d-hat
+  focalList = new KeyedBinaryHeap<EESNode<T>>() // Ordered on d-hat
   openList = new RedBlackTree<EESNode<T>>((a, b) => a.fHat - b.fHat) // Ordered on f-hat
-  cleanupList = new BinaryHeap<EESNode<T>>() // Ordered on f
+  cleanupList = new KeyedBinaryHeap<EESNode<T>>() // Ordered on f
   // private focalBoundary: RedBlackNode<EESNode<T>> | null = null
   // private focalThreshold = -Infinity
 
@@ -105,7 +105,7 @@ class EESList<T> {
     while (current != null) {
       const node = current.values[0] as EESNode<T>
       if (node.fHat > threshold) break
-      if (this.members.has(node)) this.focalList.insert(node, node.dHat)
+      if (this.members.has(node)) this.focalList.insertOrUpdate(node, node.dHat)
       current = this.openList.successor(current)
     }
   }
@@ -160,7 +160,7 @@ class EESList<T> {
 
     this.members.add(node)
     this.openList.insert(node)
-    this.cleanupList.insert(node, node.f)
+    this.cleanupList.insertOrUpdate(node, node.f)
   }
 
   pop (): T | undefined {

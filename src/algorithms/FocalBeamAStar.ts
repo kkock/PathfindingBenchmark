@@ -4,13 +4,16 @@ import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
 import { Heuristic } from '../services/Heuristic'
-import { BinaryHeap } from '../ds/BinaryHeap'
+import { KeyedBinaryHeap } from '../ds/KeyedBinaryHeap'
 import { reconstructPath } from '../services/misc'
-import { IntervalHeap } from '../ds/IntervalHeap'
+import { KeyedIntervalHeap } from '../ds/KeyedIntervalHeap'
 
+/**
+ * @todo remove element from fallback queue if it's already in the focal one.
+ */
 class FocalBeamQueue<T> {
-  private readonly focalList = new IntervalHeap<T>()
-  private readonly openList = new BinaryHeap<T>()
+  private readonly focalList = new KeyedIntervalHeap<T>()
+  private readonly openList = new KeyedBinaryHeap<T>()
   private _beamSize: number
   constructor (beamSize: number) { this._beamSize = beamSize }
 
@@ -24,11 +27,11 @@ class FocalBeamQueue<T> {
   }
 
   insert (item: T, priority: number): void {
-    this.focalList.insert(item, priority)
+    this.focalList.insertOrUpdate(item, priority)
     if (this.focalList.size > this._beamSize) {
       const maxItem = this.focalList.max() as T
       const maxPriority = this.focalList.maxPriority() as number
-      this.openList.insert(maxItem, maxPriority)
+      this.openList.insertOrUpdate(maxItem, maxPriority)
       this.focalList.deleteMax()
     }
   }
@@ -44,7 +47,7 @@ class FocalBeamQueue<T> {
     while (this.openList.size > 0 && this.focalList.size < this._beamSize) {
       const priority = this.openList.peekPriority() as number
       const item = this.openList.pop() as T
-      this.focalList.insert(item, priority)
+      this.focalList.insertOrUpdate(item, priority)
     }
   }
 

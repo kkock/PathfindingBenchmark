@@ -1,11 +1,11 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import type { Graph, Vertex } from '../Graph'
+import { Graph, Vertex } from '../Graph'
 import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
 import { Heuristic } from '../services/Heuristic'
 import { reconstructPath } from '../services/misc'
-import { IntervalHeap } from '../ds/IntervalHeap'
+import { KeyedIntervalHeap } from '../ds/KeyedIntervalHeap'
 
 /**
  * Global beam search
@@ -24,7 +24,7 @@ export const beamAStar: Algorithm = function * (
   const beamSize: number = opts['beamSize'] ?? 10
 
   const cameFrom = new Map<Vertex, Vertex>()
-  const openSet = new IntervalHeap<Vertex>()
+  const openSet = new KeyedIntervalHeap<Vertex>()
   openSet.insert(source, epsilon * h.get(graph, source.x, source.y, goal.x, goal.y))
   gScores.set(source, 0)
 
@@ -51,7 +51,7 @@ export const beamAStar: Algorithm = function * (
         if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
           gScores.set(nextVertex, tentativeCost)
           cameFrom.set(nextVertex, vertex)
-          openSet.insert(nextVertex, tentativeCost + epsilon * h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y))
+          openSet.insertOrUpdate(nextVertex, tentativeCost + epsilon * h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y))
           nodesGenerated++
 
           if (openSet.size > beamSize) openSet.deleteMax()

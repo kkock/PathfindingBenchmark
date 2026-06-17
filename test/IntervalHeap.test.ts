@@ -1,6 +1,9 @@
 import { describe, expect, test } from '@jest/globals'
 import { IntervalHeap } from '../src/ds/IntervalHeap'
 import { getSeededPrng } from './utils'
+//import { KeyedIntervalHeap as IntervalHeap } from '../src/ds/KeyedIntervalHeap'
+
+
 
 describe('IntervalHeap', () => {
   test('is empty when created', () => {
