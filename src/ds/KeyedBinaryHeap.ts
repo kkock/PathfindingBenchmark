@@ -105,4 +105,31 @@ export class KeyedBinaryHeap<T> implements Queue<T>  {
     this.positions.set(this.heap[i][0], i)
     this.positions.set(this.heap[j][0], j)
   }
+
+  remove (item: T): boolean {
+    if (!this.positions.has(item)) return false
+    const index = this.positions.get(item)!
+
+    this.positions.delete(item)
+
+    const lastIndex = this.heap.length - 1
+    if (index === lastIndex) {
+      this.heap.pop()
+      return true
+    }
+
+    const last = this.heap.pop() as Node<T>
+    this.positions.set(last[0], index)
+    this.heap[index] = last
+
+    // decide which direction to repair
+    const parent = Math.floor((index - 1) / 2)
+    if (index > 0 && this.heap[index]![1] < this.heap[parent]![1]) {
+      this.bubbleUp(index)
+    } else {
+      this.bubbleDown(index)
+    }
+
+    return true
+  }
 }

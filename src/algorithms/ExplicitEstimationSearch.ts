@@ -40,8 +40,6 @@ class EESList<T> {
   focalList = new KeyedBinaryHeap<EESNode<T>>() // Ordered on d-hat
   openList = new RedBlackTree<EESNode<T>>((a, b) => a.fHat - b.fHat) // Ordered on f-hat
   cleanupList = new KeyedBinaryHeap<EESNode<T>>() // Ordered on f
-  // private focalBoundary: RedBlackNode<EESNode<T>> | null = null
-  // private focalThreshold = -Infinity
 
   private readonly weight: number
 

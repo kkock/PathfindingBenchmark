@@ -229,6 +229,7 @@ describe('KeyedBinaryHeap', () => {
     for (let i = 0; i < ITERATIONS; i++) {
       const operation = rand()
       if (oracle.size === 0 || operation < 0.60) {
+        // Add new item
         const item = Math.floor(rand() * ITEMS)
 
         // Generate a priority that is not currently used by another item.
@@ -248,7 +249,17 @@ describe('KeyedBinaryHeap', () => {
         expect(oracle.has(item)).toBe(heap.has(item))
         heap.insertOrUpdate(item, priority)
         oracle.set(item, priority)
+      } else if (oracle.size === 0 || operation < 0.60) {
+        // Remove item
+        const items = [...oracle.keys()]
+        const item = items[Math.floor(rand() * items.length)]!
+        expect(heap.has(item)).toBe(true)
+        const removed = heap.remove(item)
+        expect(removed).toBe(true)
+        oracle.delete(item)
+        expect(heap.has(item)).toBe(false)
       } else {
+        // Pop item
         let minItem: number | undefined
         let minPriority = Infinity
         for (const [item, priority] of oracle) {

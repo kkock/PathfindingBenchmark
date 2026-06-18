@@ -8,9 +8,6 @@ import { KeyedBinaryHeap } from '../ds/KeyedBinaryHeap'
 import { reconstructPath } from '../services/misc'
 import { KeyedIntervalHeap } from '../ds/KeyedIntervalHeap'
 
-/**
- * @todo remove element from fallback queue if it's already in the focal one.
- */
 class FocalBeamQueue<T> {
   private readonly focalList = new KeyedIntervalHeap<T>()
   private readonly openList = new KeyedBinaryHeap<T>()
@@ -27,6 +24,9 @@ class FocalBeamQueue<T> {
   }
 
   insert (item: T, priority: number): void {
+    if (this.openList.has(item)) {
+      this.openList.remove(item)
+    }
     this.focalList.insertOrUpdate(item, priority)
     if (this.focalList.size > this._beamSize) {
       const maxItem = this.focalList.max() as T

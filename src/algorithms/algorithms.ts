@@ -6,6 +6,7 @@ import { latticeAStar } from './LatticeAStar'
 import { beamSearch } from './BeamSearch'
 import { beamAStar } from './BeamAStar'
 import { explicitEstimationSearch } from './ExplicitEstimationSearch'
+import { explicitEstimationSearch2 } from './ExplicitEstimationSearch2'
 import { bidirectionalAStar } from './BidirectionalAStar'
 import { anytimeBidirectionalAStar } from './AnytimeBidirectionalAStar'
 import { anytimeRepairingAStar } from './AnytimeRepairingAStar'
@@ -19,6 +20,7 @@ export default [
   beamSearch,
   beamAStar,
   explicitEstimationSearch,
+  explicitEstimationSearch2,
   bidirectionalAStar,
   anytimeBidirectionalAStar,
   anytimeRepairingAStar
@@ -32,6 +34,7 @@ export { latticeAStar } from './LatticeAStar'
 export { beamSearch } from './BeamSearch'
 export { beamAStar } from './BeamAStar'
 export { explicitEstimationSearch } from './ExplicitEstimationSearch'
+export { explicitEstimationSearch2 } from './ExplicitEstimationSearch2'
 export { bidirectionalAStar } from './BidirectionalAStar'
 export { anytimeBidirectionalAStar } from './AnytimeBidirectionalAStar'
 export { anytimeRepairingAStar } from './AnytimeRepairingAStar'
