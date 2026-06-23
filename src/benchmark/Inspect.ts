@@ -175,8 +175,12 @@ function displayStat (name: string, value: string, expected: number, max: number
 function stringifyOptions (algorithm: string, services: { [key: string]: string }, opts: { [key: string]: any }): string {
   const data: { [key: string]: any } = {}
   data['algorithm'] = algorithm
-  data['heuristic'] = services['Heuristic']
-  data['cost'] = services['Cost']
+  if (services['Heuristic'] != null) data['heuristic'] = services['Heuristic']
+  if (services['Cost'] != null) data['cost'] = services['Cost']
+  if (services['InadmissibleHeuristic'] != null) data['inadmissibleHeuristic'] = services['InadmissibleHeuristic']
+  if (services['ApproximateCost'] != null) data['approximateCost'] = services['ApproximateCost']
+  if (services['ActionEstimate'] != null) data['actionEstimate'] = services['ActionEstimate']
+  if (services['InadmissibleActionEstimate'] != null) data['inadmissibleActionEstimate'] = services['InadmissibleActionEstimate']
   for (const key of Object.keys(opts)) data[key] = opts[key]
 
   const result = []

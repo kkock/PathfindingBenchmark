@@ -1,37 +1,80 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import type { Graph, Vertex } from '../Graph'
+import { Graph, Vertex } from '../Graph'
 import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
 import { Heuristic, InadmissibleHeuristic } from '../services/Heuristic'
 import { KeyedBinaryHeap } from '../ds/KeyedBinaryHeap'
 import { reconstructPath } from '../services/misc'
-import { InadmissibleActionEstimate } from '../services/ActionEstimate'
+import { ActionEstimate, InadmissibleActionEstimate } from '../services/ActionEstimate'
 import { RedBlackTree } from '../ds/RedBlackTree2'
+import { appendFileSync } from 'node:fs'
 
 //import {TreeMultiSet} from 'data-structure-typed';
+
+let focalCnt = 0
+let openCnt = 0
+let cleanupCnt = 0
 
 export class EESNode<T> {
   item: T
 
-  f: number
+  //f: number
   g: number
-  fHat: number
-  dHat: number
+  h: number
+  d: number
+  //fHat: number
+  //dHat: number
 
   _open?: boolean
   _inFocal?: boolean
 
-  constructor (item: T, g: number, h: number, hHat: number, dHat: number) {
+  depth: number
+  meanHError: number
+  meanDError: number
+
+  //constructor (item: T, g: number, h: number, hHat: number, dHat: number) {
+  constructor (
+    item: T,
+    g: number, h: number,d: number,
+    depth: number, meanHError: number, meanDError: number
+  ) {
     this.item = item
     this.g = g
-    this.f = g + h
-    this.fHat = g + hHat
-    this.dHat = dHat
+    this.h = h
+    this.d = d
+    this.depth = depth
+    this.meanHError = meanHError
+    this.meanDError = meanDError
+  }
+
+  get dHat (): number {
+    const denom = Math.max(0.1, 1 - this.meanDError)
+    return this.d / denom
+  }
+
+  get hHat (): number {
+    return this.h + this.dHat * this.meanHError
+  }
+
+  get f (): number {
+    return this.g + this.h
+  }
+
+  get fHat (): number {
+    return this.g + this.hHat
   }
 }
 
 export class EESQueue<T> {
+  debug () {
+    return {
+      focal: this.focal.size,
+      open: this.open.size,
+      cleanup: this.cleanup.size,
+    }
+  }
+
   private readonly weight: number;
 
   private readonly nodes = new Map<T, EESNode<T>>();
@@ -138,48 +181,56 @@ export class EESQueue<T> {
     this.removeFromSearch(node)
   }
 
-  private removeFromSearch (node: EESNode<T>): void {
+  private removeFromSearch(node: EESNode<T>): void {
     if (!node._open) return
+
     node._open = false
+
     this.open.remove(node)
-    //this.open.delete(node)
+
+    if (node._inFocal) {
+      node._inFocal = false
+      this.focal.remove(node)
+    }
+
+    this.cleanup.remove(node)
+
     const current = this.nodes.get(node.item)
-    if (current === node) this.nodes.delete(node.item);
-    // Cleanup and focal use lazy deletion.
+    if (current === node) {
+      this.nodes.delete(node.item)
+    }
   }
 
   /**
    * Synchronize focal with `fHat <= w * best-fHat`
    */
-  private updateFocal (): void {
-    const bestFHat = this.open.min()
-    //const bestFHat = this.open.first()
+  private updateFocal(): void {
+    const best = this.open.min()
 
-    if (!bestFHat) {
-      // No more nodes, so the threshold is reset
+    if (best == null) {
+      this.focal.clear()
       this.focalThreshold = -Infinity
       return
     }
 
-    // Removal from focal is lazy, so we only need to add nodes.
-    const newThreshold = this.weight * bestFHat.fHat
-    if (newThreshold <= this.focalThreshold) return
+    const newThreshold = this.weight * best.fHat
 
-    /**
-     * Visit the range of open newly admitted into focal.
-     * (focalThreshold, newThreshold]
-     */
-    const newlyEligible = this.open.range(this.focalThreshold, newThreshold)
-    /*const newlyEligible = this.open.rangeSearch([{
-      fHat: this.focalThreshold
-    }, {
-      fHat: newThreshold
-    }] as any)*/
-
-    for (const node of newlyEligible) {
-      if (!node._open || node._inFocal) continue
-      node._inFocal = true
-      this.focal.insert(node, node.dHat)
+    if (newThreshold > this.focalThreshold) {
+      // Add newly eligible nodes.
+      for (const node of this.open.range(this.focalThreshold, newThreshold)) {
+        if (!node._inFocal) {
+          node._inFocal = true
+          this.focal.insert(node, node.dHat)
+        }
+      }
+    } else if (newThreshold < this.focalThreshold) {
+      // Remove newly ineligible nodes.
+      for (const node of this.open.range(newThreshold, this.focalThreshold)) {
+        if (node._inFocal && node.fHat > newThreshold) {
+          node._inFocal = false
+          this.focal.remove(node)
+        }
+      }
     }
 
     this.focalThreshold = newThreshold
@@ -208,18 +259,19 @@ export class EESQueue<T> {
       if (node._open) return node
       this.focal.pop()
     }
-    return undefined;
+    return undefined
   }
 
   private popValidFocal(): EESNode<T> | undefined {
     while (this.focal.size > 0) {
       const node = this.focal.pop()!
-      if (node._open) return node;
+      if (node._open) return node
+      this.focal.pop()
     }
     return undefined
   }
 
-  insert (item: T, g: number, h: number, hHat: number, dHat: number): boolean {
+  /*insert (item: T, g: number, h: number, hHat: number, dHat: number): boolean {
     if (this.nodes.has(item)) {
       const existing = this.nodes.get(item)!
       if (g >= existing.g) return false
@@ -227,9 +279,19 @@ export class EESQueue<T> {
     }
     this.insertNode(new EESNode(item, g, h, hHat, dHat))
     return true
+  }*/
+
+  insert (node: EESNode<T>): boolean {
+    if (this.nodes.has(node.item)) {
+      const existing = this.nodes.get(node.item)!
+      if (node.g >= existing.g) return false
+      this.removeNode(existing)
+    }
+    this.insertNode(node)
+    return true
   }
 
-  pop (): T | undefined {
+  pop (): EESNode<T> | undefined {
     const bestCleanup = this.peekBestF()
     if (bestCleanup == null) return undefined
 
@@ -239,11 +301,14 @@ export class EESQueue<T> {
     if (bestOpen == null) return undefined
 
     if (bestFocal != null && bestFocal.fHat <= this.weight * bestCleanup.f) {
-      return this.popBestDHat()?.item
+      focalCnt++
+      return this.popBestDHat()
     } else if (bestOpen.fHat <= this.weight * bestCleanup.f) {
-      return this.popBestFHat()?.item
+      openCnt++
+      return this.popBestFHat()
     } else {
-      return this.popBestF()?.item
+      cleanupCnt++
+      return this.popBestF()
     }
   }
 }
@@ -259,32 +324,45 @@ export const explicitEstimationSearch2: Algorithm = function * (
   opts: { [key: string]: any } = {}
 ): Generator<AlgorithmResult, undefined, void> {
   const h = services.get(Heuristic)
-  const hHat = services.get(InadmissibleHeuristic)
-  const dHat = services.get(InadmissibleActionEstimate)
+  const d = services.get(ActionEstimate)
   const g = services.get(Cost)
   const gScores = new Map<Vertex, number>()
   const epsilon: number = opts['epsilon'] ?? 1
 
+  const h0 = h.get(graph, source.x, source.y, goal.x, goal.y)
+  const d0 = d.get(graph, source.x, source.y, goal.x, goal.y)
+
   const cameFrom = new Map<Vertex, Vertex>()
   const openSet = new EESQueue<Vertex>(epsilon)
-  openSet.insert(
-    source,
-    0,
-    h.get(graph, source.x, source.y, goal.x, goal.y),
-    hHat.get(graph, source.x, source.y, goal.x, goal.y),
-    dHat.get(graph, source.x, source.y, goal.x, goal.y)
-  )
+  openSet.insert(new EESNode<Vertex>(source, 0, h0, d0, 0, 0, 0))
   gScores.set(source, 0)
 
   let nodesGenerated = 1
   let nodesExpanded = 0
 
   while (openSet.size > 0) {
-    const vertex = openSet.pop() as Vertex
+    const node = openSet.pop()!
+    const vertex = node.item
     const currentCost = gScores.get(vertex) as number
     nodesExpanded++
 
+    appendFileSync('./test.log', JSON.stringify({
+      h: node.h,
+      d: node.d,
+      meanHError: node.meanHError,
+      meanDError: node.meanDError,
+      hHat: node.hHat,
+      dHat: node.dHat,
+      f: node.f,
+      fHat: node.fHat,
+    }) + '\n')
+
     if (vertex === goal) {
+      console.log({
+        focalCnt,
+        openCnt,
+        cleanupCnt
+      })
       yield {
         path: reconstructPath(cameFrom, goal),
         searchMetrics: { nodesExpanded, nodesGenerated }
@@ -292,21 +370,100 @@ export const explicitEstimationSearch2: Algorithm = function * (
       return
     }
 
-    for (const nextVertex of vertex.neighbors) {
-      const tentativeCost = currentCost + g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
+    /*for (const nextVertex of vertex.neighbors) {
+      const stepCost = g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
+      const tentativeCost = currentCost + stepCost
 
       if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
         gScores.set(nextVertex, tentativeCost)
         cameFrom.set(nextVertex, vertex)
-        openSet.insert(
+
+        
+        const childH = h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y)
+        const childD = d.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y)
+
+        const eh = stepCost + childH - node.h
+        const ed = childD + 1 - node.d
+        const childDepth = node.depth + 1
+        const meanHError = (node.meanHError * node.depth + eh) / childDepth
+        const meanDError = (node.meanDError * node.depth + ed) / childDepth
+
+        openSet.insert(new EESNode(
           nextVertex,
           tentativeCost,
-          h.get(graph, source.x, source.y, goal.x, goal.y),
-          hHat.get(graph, source.x, source.y, goal.x, goal.y),
-          dHat.get(graph, source.x, source.y, goal.x, goal.y)
-        )
+          childH,
+          childD,
+          childDepth,
+          meanHError,
+          meanDError
+        ))
+
         nodesGenerated++
       }
+    }*/
+
+    const children = []
+
+    let bestChildH = Infinity
+    let bestChildD = Infinity
+    let bestStepCost = 0
+
+    for (const nextVertex of vertex.neighbors) {
+      const stepCost = g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
+      const childH = h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y)
+      const childD = d.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y)
+      const tentativeCost = currentCost + stepCost
+
+      if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
+        children.push({
+          nextVertex,
+          stepCost,
+          childH,
+          childD,
+          tentativeCost
+        })
+      }
+
+      const value = stepCost + childH
+
+      if (value < bestChildH + bestStepCost) {
+        bestChildH = childH
+        bestChildD = childD
+        bestStepCost = stepCost
+      }
+    }
+
+    const eh = bestStepCost + bestChildH - node.h
+    const ed = bestChildD + 1 - node.d
+    const childDepth = node.depth + 1
+    const meanHError = (node.meanHError * node.depth + eh) / childDepth
+    const meanDError = (node.meanDError * node.depth + ed) / childDepth
+
+    for (const child of children) {
+      appendFileSync('./test2.log', JSON.stringify({
+        h: node.h,
+        tentativeCost: child.tentativeCost,
+        childH: child.childH,
+        childD: child.childD,
+        childDepth: childDepth,
+        meanHError: meanHError,
+        meanDError: meanDError
+      }) + '\n')
+
+      const childNode = new EESNode(
+        child.nextVertex,
+        child.tentativeCost,
+        child.childH,
+        child.childD,
+        childDepth,
+        meanHError,
+        meanDError
+      )
+
+      console.log(childNode.f,childNode.fHat)
+      
+
+      openSet.insert(childNode)
     }
   }
 }
@@ -315,6 +472,5 @@ explicitEstimationSearch2.availableOpts = new Set(['epsilon'])
 explicitEstimationSearch2.availableServices = new Set([
   Cost,
   Heuristic,
-  InadmissibleHeuristic,
-  InadmissibleActionEstimate
+  ActionEstimate
 ])

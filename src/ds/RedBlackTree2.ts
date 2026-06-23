@@ -115,7 +115,7 @@ export class RedBlackTree<T> {
     high: number
   ): Generator<T> {
     if (node == null) return
-
+    
     const k = this.key(node.value)
 
     if (k >= low) yield * this.rangeNode(node.left, low, high)

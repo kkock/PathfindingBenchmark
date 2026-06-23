@@ -233,9 +233,9 @@ export const explicitEstimationSearch: Algorithm = function * (
         openSet.insert(
           nextVertex,
           tentativeCost,
-          h.get(graph, source.x, source.y, goal.x, goal.y),
-          hHat.get(graph, source.x, source.y, goal.x, goal.y),
-          dHat.get(graph, source.x, source.y, goal.x, goal.y)
+          h.get(graph, vertex.x, vertex.y, goal.x, goal.y),
+          hHat.get(graph, vertex.x, vertex.y, goal.x, goal.y),
+          dHat.get(graph, vertex.x, vertex.y, goal.x, goal.y)
         )
         nodesGenerated++
       }

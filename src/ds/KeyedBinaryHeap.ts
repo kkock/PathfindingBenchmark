@@ -4,6 +4,11 @@ export class KeyedBinaryHeap<T> implements Queue<T>  {
   private heap: Array<Node<T>> = []
   private positions = new Map<T, number>()
 
+  clear (): void {
+    this.heap = []
+    this.positions.clear()
+  }
+
   has (item: T): boolean {
     return this.positions.has(item)
   }

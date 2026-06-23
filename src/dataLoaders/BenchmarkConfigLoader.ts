@@ -5,7 +5,7 @@ import type { Algorithm, SearchService } from '../Algorithm'
 import algorithms from '../algorithms/algorithms'
 import { Heuristic, InadmissibleHeuristic, euclideanHeuristic, getWeightedHeuristic } from '../services/Heuristic'
 import { ApproximateCost, Cost, euclideanCost, getWeightedCost, guardsCost } from '../services/Cost'
-import { ActionEstimate, InadmissibleActionEstimate } from '../services/ActionEstimate'
+import { ActionEstimate, chebyshevActionEstimate, euclideanActionEstimate, getWeightedActionEstimate, InadmissibleActionEstimate, manhattanActionEstimate } from '../services/ActionEstimate'
 import { generateCombinations } from '../utils'
 import { readScenFiles } from './ScenLoader'
 import { getMapFiles } from './MapLoader'
@@ -117,17 +117,23 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
 
         case ActionEstimate.name:
           if (serviceValue === 'chebyshev') {
-            services.get(ActionEstimate)!.push(euclideanHeuristic)
+            services.get(ActionEstimate)!.push(chebyshevActionEstimate)
           } else if (/^chebyshev\([\d.]+\)$/.test(serviceValue)) {
             const match = /^chebyshev\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(ActionEstimate)!.push(getWeightedHeuristic(weight, euclideanHeuristic))
+            services.get(ActionEstimate)!.push(getWeightedActionEstimate(weight, chebyshevActionEstimate))
           } else if (serviceValue === 'manhattan') {
-            services.get(ActionEstimate)!.push(euclideanHeuristic)
+            services.get(ActionEstimate)!.push(manhattanActionEstimate)
           } else if (/^manhattan\([\d.]+\)$/.test(serviceValue)) {
             const match = /^manhattan\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(ActionEstimate)!.push(getWeightedHeuristic(weight, euclideanHeuristic))
+            services.get(ActionEstimate)!.push(getWeightedActionEstimate(weight, manhattanActionEstimate))
+          } else if (serviceValue === 'euclidean') {
+            services.get(ActionEstimate)!.push(euclideanActionEstimate)
+          } else if (/^euclidean\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^euclidean\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
+            const weight = Number(match[1])
+            services.get(ActionEstimate)!.push(getWeightedActionEstimate(weight, euclideanActionEstimate))
           } else {
             throw new RangeError(`Unknown heuristic '${serviceValue}'`)
           }
@@ -135,17 +141,17 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
 
         case InadmissibleActionEstimate.name:
           if (serviceValue === 'chebyshev') {
-            services.get(InadmissibleActionEstimate)!.push(euclideanHeuristic)
+            services.get(InadmissibleActionEstimate)!.push(chebyshevActionEstimate)
           } else if (/^chebyshev\([\d.]+\)$/.test(serviceValue)) {
             const match = /^chebyshev\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(InadmissibleActionEstimate)!.push(getWeightedHeuristic(weight, euclideanHeuristic))
+            services.get(InadmissibleActionEstimate)!.push(getWeightedHeuristic(weight, chebyshevActionEstimate))
           } else if (serviceValue === 'manhattan') {
-            services.get(InadmissibleActionEstimate)!.push(euclideanHeuristic)
+            services.get(InadmissibleActionEstimate)!.push(manhattanActionEstimate)
           } else if (/^manhattan\([\d.]+\)$/.test(serviceValue)) {
             const match = /^manhattan\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(InadmissibleActionEstimate)!.push(getWeightedHeuristic(weight, euclideanHeuristic))
+            services.get(InadmissibleActionEstimate)!.push(getWeightedHeuristic(weight, manhattanActionEstimate))
           } else {
             throw new RangeError(`Unknown heuristic '${serviceValue}'`)
           }

@@ -8,6 +8,7 @@ import { Cost } from '../services/Cost'
 import { hrtime } from 'node:process'
 import fs from 'node:fs'
 import chalk from 'chalk'
+import { euclideanHeuristic, getWeightedHeuristic } from '../services/Heuristic'
 
 export class Suite {
   private readonly graph: Graph
@@ -174,8 +175,12 @@ export function prepareSuites (
   const graphs = new Map<string, Graph>()
   const result: Suite[] = []
 
-  scenFile = scenFile.slice(0, 100)
+  //scenFile = scenFile.slice(0, 100)
+  scenFile = scenFile.slice(-1)
   //scenFile = scenFile.slice(-20)
+
+  //const gr = [...graphs.values()][0]!
+  //console.log(getWeightedHeuristic(0.1, euclideanHeuristic).get(gr, 10, 10, 11, 11))
 
   for (const scenLine of scenFile) {
     if (!mapFilePaths.has(scenLine.map)) throw new RangeError(`Map '${scenLine.map}' could not be found in the provided map directory`)
