@@ -1,9 +1,12 @@
 {
-  "scenPath": "../../Guards-main/Baldurs Gate II/AR0011SR/AR0011SR_16_0.map.scen",
-  "mapPath": "../../Guards-main/Baldurs Gate II/AR0011SR/AR0011SR_16_0.map",
+  "scenPath": "../../Guards-main/Baldurs Gate II/AR0011SR/AR0011SR_16_2048.map.scen",
+  "mapPath": "../../Guards-main/Baldurs Gate II/AR0011SR/AR0011SR_16_2048.map",
   "outPath": "./logs/result.log",
   "guards": true,
   "algorithms": [
+    "anytimeAStar",
+    "bidirectionalAStar",
+    "anytimeRepairingAStar",
     "explicitEstimationSearch2"
   ],
   "services": {
@@ -28,7 +31,7 @@
   },
   "opts": {
     "epsilon": [
-      1.2
+      2
     ],
     "beamSize": [
       20,

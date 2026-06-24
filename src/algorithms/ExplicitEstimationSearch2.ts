@@ -8,13 +8,14 @@ import { KeyedBinaryHeap } from '../ds/KeyedBinaryHeap'
 import { reconstructPath } from '../services/misc'
 import { ActionEstimate, InadmissibleActionEstimate } from '../services/ActionEstimate'
 import { RedBlackTree } from '../ds/RedBlackTree2'
-import { appendFileSync } from 'node:fs'
+//import { appendFileSync } from 'node:fs'
 
 //import {TreeMultiSet} from 'data-structure-typed';
 
-let focalCnt = 0
-let openCnt = 0
-let cleanupCnt = 0
+//let i=0
+//let focalCnt = 0
+//let openCnt = 0
+//let cleanupCnt = 0
 
 export class EESNode<T> {
   item: T
@@ -39,6 +40,7 @@ export class EESNode<T> {
     g: number, h: number,d: number,
     depth: number, meanHError: number, meanDError: number
   ) {
+    //console.log({ item, g, h, d, depth, meanHError, meanDError })
     this.item = item
     this.g = g
     this.h = h
@@ -115,7 +117,18 @@ export class EESQueue<T> {
     this.open.insert(node)
     //this.open.add(node)
     this.cleanup.insertOrUpdate(node, node.f)
+    const best = this.open.min()
+
+    if (best != null && node.fHat <= this.weight * best.fHat) {
+      node._inFocal = true
+      this.focal.insert(node, node.dHat)
+    }
     this.updateFocal()
+    /*console.log({
+      focal:this.focal.size,
+      open:this.open.size,
+      cleanup:this.cleanup.size,
+    })*/
   }
 
   /**
@@ -266,7 +279,6 @@ export class EESQueue<T> {
     while (this.focal.size > 0) {
       const node = this.focal.pop()!
       if (node._open) return node
-      this.focal.pop()
     }
     return undefined
   }
@@ -300,14 +312,22 @@ export class EESQueue<T> {
 
     if (bestOpen == null) return undefined
 
+    /*if (i++ % 1000 === 0) {
+      console.log({
+        bestFHat: bestOpen?.fHat,
+        bestF: bestCleanup?.f,
+        ratio: bestOpen?.fHat! / bestCleanup?.f!
+      })
+    }*/
+
     if (bestFocal != null && bestFocal.fHat <= this.weight * bestCleanup.f) {
-      focalCnt++
+      //focalCnt++
       return this.popBestDHat()
     } else if (bestOpen.fHat <= this.weight * bestCleanup.f) {
-      openCnt++
+      //openCnt++
       return this.popBestFHat()
     } else {
-      cleanupCnt++
+      //cleanupCnt++
       return this.popBestF()
     }
   }
@@ -346,7 +366,7 @@ export const explicitEstimationSearch2: Algorithm = function * (
     const currentCost = gScores.get(vertex) as number
     nodesExpanded++
 
-    appendFileSync('./test.log', JSON.stringify({
+    /*appendFileSync('./test.log', JSON.stringify({
       h: node.h,
       d: node.d,
       meanHError: node.meanHError,
@@ -355,14 +375,14 @@ export const explicitEstimationSearch2: Algorithm = function * (
       dHat: node.dHat,
       f: node.f,
       fHat: node.fHat,
-    }) + '\n')
+    }) + '\n')*/
 
     if (vertex === goal) {
-      console.log({
+      /*console.log({
         focalCnt,
         openCnt,
         cleanupCnt
-      })
+      })*/
       yield {
         path: reconstructPath(cameFrom, goal),
         searchMetrics: { nodesExpanded, nodesGenerated }
@@ -440,7 +460,9 @@ export const explicitEstimationSearch2: Algorithm = function * (
     const meanDError = (node.meanDError * node.depth + ed) / childDepth
 
     for (const child of children) {
-      appendFileSync('./test2.log', JSON.stringify({
+      gScores.set(child.nextVertex, child.tentativeCost)
+      cameFrom.set(child.nextVertex, vertex)
+      /*appendFileSync('./test2.log', JSON.stringify({
         h: node.h,
         tentativeCost: child.tentativeCost,
         childH: child.childH,
@@ -448,7 +470,7 @@ export const explicitEstimationSearch2: Algorithm = function * (
         childDepth: childDepth,
         meanHError: meanHError,
         meanDError: meanDError
-      }) + '\n')
+      }) + '\n')*/
 
       const childNode = new EESNode(
         child.nextVertex,
@@ -460,10 +482,11 @@ export const explicitEstimationSearch2: Algorithm = function * (
         meanDError
       )
 
-      console.log(childNode.f,childNode.fHat)
+      //console.log(childNode.f,childNode.fHat)
       
 
       openSet.insert(childNode)
+      nodesGenerated++
     }
   }
 }
