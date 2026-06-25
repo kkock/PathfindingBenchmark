@@ -1,5 +1,5 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import type { Graph, Vertex } from '../Graph'
+import type { Graph, Vertex } from '../graph/Graph'
 import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'

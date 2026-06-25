@@ -1,4 +1,4 @@
-import { Graph, Vertex } from '../Graph'
+import { Graph, Vertex } from '../graph/Graph'
 
 import fs from 'node:fs'
 import path from 'node:path'

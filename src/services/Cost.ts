@@ -1,4 +1,4 @@
-import type { Graph, Vertex } from '../Graph'
+import type { Graph, Vertex } from '../graph/Graph'
 import { euclideanDistance } from './misc'
 
 type CostCallback = (graph: Graph, x1: number, y1: number, x2: number, y2: number) => number

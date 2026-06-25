@@ -1,4 +1,4 @@
-import type { Graph } from '../Graph'
+import type { Graph } from '../graph/Graph'
 import { chebyshevDistance, euclideanDistance, manhattanDistance } from './misc'
 
 type ActionEstimateCallback = (graph: Graph, x1: number, y1: number, x2: number, y2: number) => number

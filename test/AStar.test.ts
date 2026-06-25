@@ -2,7 +2,7 @@ import { describe, expect, test } from '@jest/globals'
 import { diagonalNeighborPolicy, strTo2DArr } from './utils'
 import { graphFromMap } from '../src/dataLoaders/MapLoader'
 import type { AlgorithmResult, SearchService } from '../src/Algorithm'
-import type { Vertex } from '../src/Graph'
+import type { Vertex } from '../src/graph/Graph'
 import type { InstanceRegistry } from '../src/Registry'
 
 import { aStar } from '../src/algorithms/AStar'

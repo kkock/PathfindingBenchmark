@@ -1,7 +1,7 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
 import { graphFromMap, parseMap } from '../dataLoaders/MapLoader'
 import { parseScen, type ScenDef } from '../dataLoaders/ScenLoader'
-import type { Graph, Vertex } from '../Graph'
+import type { Graph, Vertex } from '../graph/Graph'
 import type { InstanceRegistry } from '../Registry'
 import { Cost } from '../services/Cost'
 

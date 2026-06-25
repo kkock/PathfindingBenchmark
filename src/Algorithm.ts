@@ -1,4 +1,4 @@
-import type { Graph, Vertex } from './Graph'
+import type { Graph, Vertex } from './graph/Graph'
 import type { ClassType, InstanceRegistry } from './Registry'
 import type { Cost } from './services/Cost'
 import type { Heuristic } from './services/Heuristic'

@@ -1,17 +1,14 @@
 {
-  "scenPath": "../../Guards-main/Baldurs Gate II/AR0011SR/AR0011SR_16_2048.map.scen",
-  "mapPath": "../../Guards-main/Baldurs Gate II/AR0011SR/AR0011SR_16_2048.map",
+  "scenPath": "../../Guards-main/Baldurs Gate II/AR0011SR/AR0011SR_16_0.map.scen",
+  "mapPath": "../../Guards-main/Baldurs Gate II/AR0011SR/AR0011SR_16_0.map",
   "outPath": "./logs/result.log",
   "guards": true,
   "algorithms": [
-    "anytimeAStar",
-    "bidirectionalAStar",
-    "anytimeRepairingAStar",
     "explicitEstimationSearch2"
   ],
   "services": {
     "Heuristic": [
-      "euclidean(1)"
+      "euclidean(0.25)"
     ],
     "Cost": [
       "euclidean-guards(1)"
