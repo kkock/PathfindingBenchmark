@@ -1,18 +1,6 @@
-export class Vertex {
-  public readonly neighbors: Vertex[] = []
-  public readonly x: number
-  public readonly y: number
-  public value: string
-
-  constructor (x: number, y: number, value: string) {
-    this.value = value
-    this.x = x
-    this.y = y
-  }
-
-  addNeighbor (neighbor: Vertex): void {
-    this.neighbors.push(neighbor)
-  }
+/*export interface Vertex {
+  value: string
+  getNeighbors (): Vertex[]
 }
 
 export class Graph {
@@ -29,4 +17,20 @@ export class Graph {
   hasVertex (key: string): boolean {
     return this.vertices.has(key)
   }
+}
+*/
+
+type HeuristicCallback<S> = (domain: SearchDomain<S>, state: S) => number
+type CostCallback<S> = (domain: SearchDomain<S>, state: S) => number
+type ActionEstimateCallback<S> = (domain: SearchDomain<S>, state: S) => number
+
+interface Successor<S> {
+  state: S
+  cost: number
+}
+
+interface SearchDomain<S> {
+  successors (state: S): Iterable<Successor<S>>
+  isGoal (state: S): boolean
+  key (state: S): string
 }

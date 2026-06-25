@@ -1,5 +1,5 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import { Graph, Vertex } from '../graph/Graph'
+import { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
@@ -8,26 +8,26 @@ import { KeyedBinaryHeap } from '../ds/KeyedBinaryHeap'
 import { reconstructPath } from '../services/misc'
 
 export const anytimeRepairingAStar: Algorithm = function * (
-  graph: Graph,
+  graph: GridGraph,
   services: InstanceRegistry<SearchService>,
-  source: Vertex,
-  goal: Vertex,
+  source: GridVertex,
+  goal: GridVertex,
   opts: { [key: string]: any } = {}
 ): Generator<AlgorithmResult, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
-  const gScores = new Map<Vertex, number>()
-  const hScores = new Map<Vertex, number>()
+  const gScores = new Map<GridVertex, number>()
+  const hScores = new Map<GridVertex, number>()
   let epsilon: number = opts['epsilon'] ?? 1
 
-  const cameFrom = new Map<Vertex, Vertex>()
-  const openSet = new KeyedBinaryHeap<Vertex>()
-  const closedSet = new Set<Vertex>()
-  const inconsistentSet = new Set<Vertex>()
+  const cameFrom = new Map<GridVertex, GridVertex>()
+  const openSet = new KeyedBinaryHeap<GridVertex>()
+  const closedSet = new Set<GridVertex>()
+  const inconsistentSet = new Set<GridVertex>()
 
   function improvePath () {
     while (openSet.size > 0 && (gScores.get(goal) as number) > (openSet.peekPriority() as number)) {
-      const vertex = openSet.pop() as Vertex
+      const vertex = openSet.pop() as GridVertex
       nodesExpanded++
       closedSet.add(vertex)
       const currentCost = gScores.get(vertex) as number
@@ -67,7 +67,7 @@ export const anytimeRepairingAStar: Algorithm = function * (
   }
   while (epsilon > 1) {
     epsilon = Math.max(1, epsilon - 1)
-    while (openSet.size > 0) inconsistentSet.add(openSet.pop() as Vertex)
+    while (openSet.size > 0) inconsistentSet.add(openSet.pop() as GridVertex)
     for (const vertex of inconsistentSet) {
       const fScore = 
         (gScores.get(vertex) as number) + 

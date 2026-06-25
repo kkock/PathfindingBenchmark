@@ -1,5 +1,5 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import type { Graph, Vertex } from '../graph/Graph'
+import type { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
@@ -13,21 +13,21 @@ import { reconstructPath } from '../services/misc'
  * does not universally have the same effect as a low-quality heuristic.
  */
 export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
-  graph: Graph,
+  graph: GridGraph,
   services: InstanceRegistry<SearchService>,
-  source: Vertex,
-  goal: Vertex,
+  source: GridVertex,
+  goal: GridVertex,
   opts: { [key: string]: any } = {}
 ): Generator<AlgorithmResult, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
   const N = h.get(graph, source.x, source.y, goal.x, goal.y)
   const epsilon: number = opts['epsilon'] ?? 1
-  const gScores = new Map<Vertex, number>()
-  const dScores = new Map<Vertex, number>()
+  const gScores = new Map<GridVertex, number>()
+  const dScores = new Map<GridVertex, number>()
 
-  const cameFrom = new Map<Vertex, Vertex>()
-  const openSet = new KeyedBinaryHeap<Vertex>()
+  const cameFrom = new Map<GridVertex, GridVertex>()
+  const openSet = new KeyedBinaryHeap<GridVertex>()
   openSet.insert(source, h.get(graph, source.x, source.y, goal.x, goal.y))
   gScores.set(source, 0)
   dScores.set(source, 0)
@@ -36,7 +36,7 @@ export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
   let nodesExpanded = 0
 
   while (openSet.size > 0) {
-    const vertex = openSet.pop() as Vertex
+    const vertex = openSet.pop() as GridVertex
     const currentCost = gScores.get(vertex) as number
     const currentDepth = dScores.get(vertex) as number
     nodesExpanded++

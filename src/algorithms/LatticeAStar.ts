@@ -1,5 +1,5 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import type { Graph, Vertex } from '../graph/Graph'
+import type { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
@@ -7,7 +7,7 @@ import { InadmissibleHeuristic } from '../services/Heuristic'
 import { BinaryHeap } from '../ds/BinaryHeap'
 
 class SearchNode {
-  public readonly vertex: Vertex
+  public readonly vertex: GridVertex
   public children = new Set<SearchNode>()
   public parents = new Set<SearchNode>()
   public heuristic: number | undefined
@@ -16,7 +16,7 @@ class SearchNode {
   public bestChildTotalCost: number | undefined
   public costs = new Map<SearchNode, number>()
 
-  constructor (vertex: Vertex) {
+  constructor (vertex: GridVertex) {
     this.vertex = vertex
   }
 
@@ -36,7 +36,7 @@ class SearchNode {
     return this.bestChildTotalCost ?? Infinity
   }
 
-  getEdgeCost (graph: Graph, costGetter: Cost, child: SearchNode): number {
+  getEdgeCost (graph: GridGraph, costGetter: Cost, child: SearchNode): number {
     if (!this.costs.has(child)) {
       this.costs.set(child, costGetter.get(graph,
         this.vertex.x,
@@ -50,7 +50,7 @@ class SearchNode {
   }
 }
 
-function reconstructPath (sourceNode: SearchNode): Vertex[] {
+function reconstructPath (sourceNode: SearchNode): GridVertex[] {
   const path = [sourceNode.vertex]
   let node = sourceNode
   while (node.bestChild != null) {
@@ -61,16 +61,16 @@ function reconstructPath (sourceNode: SearchNode): Vertex[] {
 }
 
 export const latticeAStar: Algorithm = function * (
-  graph: Graph,
+  graph: GridGraph,
   services: InstanceRegistry<SearchService>,
-  source: Vertex,
-  goal: Vertex,
+  source: GridVertex,
+  goal: GridVertex,
   opts: { [key: string]: any } = {}
 ): Generator<AlgorithmResult, undefined, void> {
   const h = services.get(InadmissibleHeuristic)
   const g = services.get(Cost)
   const openSet = new BinaryHeap<SearchNode>()
-  const nodes = new Map<Vertex, SearchNode>()
+  const nodes = new Map<GridVertex, SearchNode>()
   let bestSolutionCost = Infinity
 
   function addToOpenSet (node: SearchNode): void {

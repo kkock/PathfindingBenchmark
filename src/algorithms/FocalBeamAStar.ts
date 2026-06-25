@@ -1,5 +1,5 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import type { Graph, Vertex } from '../graph/Graph'
+import type { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
@@ -56,22 +56,22 @@ class FocalBeamQueue<T> {
 }
 
 export const focalBeamAStar: Algorithm = function * (
-  graph: Graph,
+  graph: GridGraph,
   services: InstanceRegistry<SearchService>,
-  source: Vertex,
-  goal: Vertex,
+  source: GridVertex,
+  goal: GridVertex,
   opts: { [key: string]: any } = {}
 ): Generator<AlgorithmResult, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
-  const gScores = new Map<Vertex, number>()
+  const gScores = new Map<GridVertex, number>()
 
   const epsilon: number = opts['epsilon'] ?? 1
   const beamSize: number = opts['beamSize'] ?? 200
   const dynamicBeamSize: number = opts['dynamicBeamSize'] ?? 20
 
-  const cameFrom = new Map<Vertex, Vertex>()
-  const openSet = new FocalBeamQueue<Vertex>(beamSize)
+  const cameFrom = new Map<GridVertex, GridVertex>()
+  const openSet = new FocalBeamQueue<GridVertex>(beamSize)
   openSet.insert(source, epsilon * h.get(graph, source.x, source.y, goal.x, goal.y))
   gScores.set(source, 0)
 
@@ -79,7 +79,7 @@ export const focalBeamAStar: Algorithm = function * (
   let nodesExpanded = 0
 
   while (openSet.size > 0) {
-    const vertex = openSet.pop() as Vertex
+    const vertex = openSet.pop() as GridVertex
     const currentCost = gScores.get(vertex) as number
     nodesExpanded++
 

@@ -1,5 +1,5 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import { Graph, Vertex } from '../graph/Graph'
+import { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
@@ -11,20 +11,20 @@ import { KeyedIntervalHeap } from '../ds/KeyedIntervalHeap'
  * Global beam search
  */
 export const beamAStar: Algorithm = function * (
-  graph: Graph,
+  graph: GridGraph,
   services: InstanceRegistry<SearchService>,
-  source: Vertex,
-  goal: Vertex,
+  source: GridVertex,
+  goal: GridVertex,
   opts: { [key: string]: any } = {}
 ): Generator<AlgorithmResult, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
-  const gScores = new Map<Vertex, number>()
+  const gScores = new Map<GridVertex, number>()
   const epsilon: number = opts['epsilon'] ?? 1
   const beamSize: number = opts['beamSize'] ?? 10
 
-  const cameFrom = new Map<Vertex, Vertex>()
-  const openSet = new KeyedIntervalHeap<Vertex>()
+  const cameFrom = new Map<GridVertex, GridVertex>()
+  const openSet = new KeyedIntervalHeap<GridVertex>()
   openSet.insert(source, epsilon * h.get(graph, source.x, source.y, goal.x, goal.y))
   gScores.set(source, 0)
 
@@ -32,7 +32,7 @@ export const beamAStar: Algorithm = function * (
   let nodesExpanded = 0
 
   while (openSet.size > 0) {
-    const vertex = openSet.min() as Vertex
+    const vertex = openSet.min() as GridVertex
     openSet.deleteMin()
     const currentCost = gScores.get(vertex) as number
     nodesExpanded++

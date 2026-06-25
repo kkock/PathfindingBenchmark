@@ -1,5 +1,5 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import { Graph, Vertex } from '../graph/Graph'
+import { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
@@ -337,24 +337,24 @@ export class EESQueue<T> {
  * @todo finish implementation
  */
 export const explicitEstimationSearch: Algorithm = function * (
-  graph: Graph,
+  graph: GridGraph,
   services: InstanceRegistry<SearchService>,
-  source: Vertex,
-  goal: Vertex,
+  source: GridVertex,
+  goal: GridVertex,
   opts: { [key: string]: any } = {}
 ): Generator<AlgorithmResult, undefined, void> {
   const h = services.get(Heuristic)
   const d = services.get(ActionEstimate)
   const g = services.get(Cost)
-  const gScores = new Map<Vertex, number>()
+  const gScores = new Map<GridVertex, number>()
   const epsilon: number = opts['epsilon'] ?? 1
 
   const h0 = h.get(graph, source.x, source.y, goal.x, goal.y)
   const d0 = d.get(graph, source.x, source.y, goal.x, goal.y)
 
-  const cameFrom = new Map<Vertex, Vertex>()
-  const openSet = new EESQueue<Vertex>(epsilon)
-  openSet.insert(new EESNode<Vertex>(source, 0, h0, d0, 0, 0, 0))
+  const cameFrom = new Map<GridVertex, GridVertex>()
+  const openSet = new EESQueue<GridVertex>(epsilon)
+  openSet.insert(new EESNode<GridVertex>(source, 0, h0, d0, 0, 0, 0))
   gScores.set(source, 0)
 
   let nodesGenerated = 1

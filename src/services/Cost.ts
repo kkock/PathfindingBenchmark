@@ -1,7 +1,7 @@
-import type { Graph, Vertex } from '../graph/Graph'
+import type { GridGraph, GridVertex } from '../graph/GridGraph'
 import { euclideanDistance } from './misc'
 
-type CostCallback = (graph: Graph, x1: number, y1: number, x2: number, y2: number) => number
+type CostCallback = (graph: GridGraph, x1: number, y1: number, x2: number, y2: number) => number
 
 export class Cost {
   public readonly get: CostCallback
@@ -44,7 +44,7 @@ export const guardsCost = new Cost((graph, x1, y1, x2, y2) => {
         graph.getVertex(`${x2},${y2}`)
       ]
 
-  return euclideanDistance(x1, y1, x2, y2) * (vertices as Vertex[]).reduce((acc, vertex, _, a) => acc + (2 ** parseInt(vertex.value, 36)) / a.length, 0)
+  return euclideanDistance(x1, y1, x2, y2) * (vertices as GridVertex[]).reduce((acc, vertex, _, a) => acc + (2 ** parseInt(vertex.value, 36)) / a.length, 0)
 }, 'euclidean-guards')
 
 export function getWeightedCost (weight: number, cost: Cost): Cost {

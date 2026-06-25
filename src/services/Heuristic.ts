@@ -1,7 +1,7 @@
-import type { Graph } from '../graph/Graph'
+import type { GridGraph } from '../graph/GridGraph'
 import { euclideanDistance } from './misc'
 
-type HeuristicCallback = (graph: Graph, x1: number, y1: number, x2: number, y2: number) => number
+type HeuristicCallback = (graph: GridGraph, x1: number, y1: number, x2: number, y2: number) => number
 
 export class Heuristic {
   public readonly get: HeuristicCallback

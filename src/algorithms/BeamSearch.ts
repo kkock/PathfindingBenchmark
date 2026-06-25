@@ -1,5 +1,5 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import type { Graph, Vertex } from '../graph/Graph'
+import type { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
 
 import { Cost } from '../services/Cost'
@@ -8,7 +8,7 @@ import { reconstructPath } from '../services/misc'
 import { quickSelect } from '../services/QuickSelect'
 
 type BeamNode = {
-  vertex: Vertex
+  vertex: GridVertex
   g: number
   f: number
 }
@@ -17,19 +17,19 @@ type BeamNode = {
  * Layered beam search without backtracking
  */
 export const beamSearch: Algorithm = function * (
-  graph: Graph,
+  graph: GridGraph,
   services: InstanceRegistry<SearchService>,
-  source: Vertex,
-  goal: Vertex,
+  source: GridVertex,
+  goal: GridVertex,
   opts: { [key: string]: any } = {}
 ): Generator<AlgorithmResult, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
-  const gScores = new Map<Vertex, number>()
+  const gScores = new Map<GridVertex, number>()
   const epsilon: number = opts['epsilon'] ?? 1
   const beamSize: number = opts['beamSize'] ?? 10
 
-  const cameFrom = new Map<Vertex, Vertex>()
+  const cameFrom = new Map<GridVertex, GridVertex>()
   gScores.set(source, 0)
 
   let nodesGenerated = 1
