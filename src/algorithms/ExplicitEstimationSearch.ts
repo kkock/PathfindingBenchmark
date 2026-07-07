@@ -1,6 +1,6 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
+import type { SearchDomain } from '../graph/Graph'
 
 import { Cost } from '../services/Cost'
 import { Heuristic, InadmissibleHeuristic } from '../services/Heuristic'
@@ -336,25 +336,25 @@ export class EESQueue<T> {
 /**
  * @todo finish implementation
  */
-export const explicitEstimationSearch: Algorithm = function * (
-  graph: GridGraph,
-  services: InstanceRegistry<SearchService>,
-  source: GridVertex,
-  goal: GridVertex,
+export const explicitEstimationSearch: Algorithm = function * <S> (
+  graph: SearchDomain<S>,
+  services: InstanceRegistry<SearchService<S>>,
+  source: S,
+  goal: S,
   opts: { [key: string]: any } = {}
-): Generator<AlgorithmResult, undefined, void> {
+): Generator<AlgorithmResult<S>, undefined, void> {
   const h = services.get(Heuristic)
   const d = services.get(ActionEstimate)
   const g = services.get(Cost)
-  const gScores = new Map<GridVertex, number>()
+  const gScores = new Map<S, number>()
   const epsilon: number = opts['epsilon'] ?? 1
 
-  const h0 = h.get(graph, source.x, source.y, goal.x, goal.y)
-  const d0 = d.get(graph, source.x, source.y, goal.x, goal.y)
+  const h0 = h.get(graph, source, goal)
+  const d0 = d.get(graph, source, goal)
 
-  const cameFrom = new Map<GridVertex, GridVertex>()
-  const openSet = new EESQueue<GridVertex>(epsilon)
-  openSet.insert(new EESNode<GridVertex>(source, 0, h0, d0, 0, 0, 0))
+  const cameFrom = new Map<S, S>()
+  const openSet = new EESQueue<S>(epsilon)
+  openSet.insert(new EESNode<S>(source, 0, h0, d0, 0, 0, 0))
   gScores.set(source, 0)
 
   let nodesGenerated = 1
@@ -436,10 +436,10 @@ export const explicitEstimationSearch: Algorithm = function * (
     let bestChildD = Infinity
     let bestStepCost = 0
 
-    for (const nextVertex of vertex.neighbors) {
-      const stepCost = g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
-      const childH = h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y)
-      const childD = d.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y)
+    for (const nextVertex of graph.successors(vertex)) {
+      const stepCost = g.get(graph, vertex, nextVertex)
+      const childH = h.get(graph, nextVertex, goal)
+      const childD = d.get(graph, nextVertex, goal)
       const tentativeCost = currentCost + stepCost
 
       if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {

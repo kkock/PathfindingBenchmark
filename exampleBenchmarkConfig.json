@@ -2,7 +2,7 @@
   "scenPath": "../../Guards-main/Baldurs Gate II/AR0011SR/AR0011SR_16_0.map.scen",
   "mapPath": "../../Guards-main/Baldurs Gate II/AR0011SR/AR0011SR_16_0.map",
   "outPath": "./logs/result.log",
-  "guards": true,
+  "type": "guards",
   "algorithms": [
     "explicitEstimationSearch2"
   ],

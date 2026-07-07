@@ -1,6 +1,6 @@
 import { describe, expect, test } from '@jest/globals'
 import { diagonalNeighborPolicy, strTo2DArr } from './utils'
-import { graphFromMap } from '../src/dataLoaders/MapLoader'
+import { gridGraphFromMap } from '../src/dataLoaders/MapLoader'
 import type { AlgorithmResult, SearchService } from '../src/Algorithm'
 import type { Vertex } from '../src/graph/Graph'
 import type { InstanceRegistry } from '../src/Registry'
@@ -17,7 +17,7 @@ describe('A* algorithm', () => {
       ...
     `)
 
-    const graph = graphFromMap(map, diagonalNeighborPolicy, { passable: new Set(['.']) })
+    const graph = gridGraphFromMap(map, diagonalNeighborPolicy, { passable: new Set(['.']) })
     const services = new Map<new (...args: any[]) => SearchService, SearchService>()
     services.set(Cost, euclideanCost)
     services.set(Heuristic, euclideanHeuristic)

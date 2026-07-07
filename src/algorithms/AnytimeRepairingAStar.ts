@@ -1,45 +1,45 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
+import type { SearchDomain } from '../graph/Graph'
 
 import { Cost } from '../services/Cost'
 import { Heuristic } from '../services/Heuristic'
 import { KeyedBinaryHeap } from '../ds/KeyedBinaryHeap'
 import { reconstructPath } from '../services/misc'
 
-export const anytimeRepairingAStar: Algorithm = function * (
-  graph: GridGraph,
-  services: InstanceRegistry<SearchService>,
-  source: GridVertex,
-  goal: GridVertex,
+export const anytimeRepairingAStar: Algorithm = function * <S> (
+  graph: SearchDomain<S>,
+  services: InstanceRegistry<SearchService<S>>,
+  source: S,
+  goal: S,
   opts: { [key: string]: any } = {}
-): Generator<AlgorithmResult, undefined, void> {
+): Generator<AlgorithmResult<S>, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
-  const gScores = new Map<GridVertex, number>()
-  const hScores = new Map<GridVertex, number>()
+  const gScores = new Map<S, number>()
+  const hScores = new Map<S, number>()
   let epsilon: number = opts['epsilon'] ?? 1
 
-  const cameFrom = new Map<GridVertex, GridVertex>()
-  const openSet = new KeyedBinaryHeap<GridVertex>()
-  const closedSet = new Set<GridVertex>()
-  const inconsistentSet = new Set<GridVertex>()
+  const cameFrom = new Map<S, S>()
+  const openSet = new KeyedBinaryHeap<S>()
+  const closedSet = new Set<S>()
+  const inconsistentSet = new Set<S>()
 
   function improvePath () {
     while (openSet.size > 0 && (gScores.get(goal) as number) > (openSet.peekPriority() as number)) {
-      const vertex = openSet.pop() as GridVertex
+      const vertex = openSet.pop() as S
       nodesExpanded++
       closedSet.add(vertex)
       const currentCost = gScores.get(vertex) as number
-      for (const nextVertex of vertex.neighbors) {
+      for (const nextVertex of graph.successors(vertex)) {
         if (!gScores.has(nextVertex)) gScores.set(nextVertex, Infinity)
         const nextCost = gScores.get(nextVertex) as number
-        const tentativeCost = currentCost + g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
+        const tentativeCost = currentCost + g.get(graph, vertex, nextVertex)
         if (nextCost > tentativeCost) {
           gScores.set(nextVertex, tentativeCost)
           cameFrom.set(nextVertex, vertex)
           if (!closedSet.has(nextVertex)) {
-            if (!hScores.has(nextVertex)) hScores.set(nextVertex, h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y))
+            if (!hScores.has(nextVertex)) hScores.set(nextVertex, h.get(graph, nextVertex, goal))
             const hScore = hScores.get(nextVertex) as number
             openSet.insertOrUpdate(nextVertex, tentativeCost + hScore * epsilon)
             nodesGenerated++
@@ -51,7 +51,7 @@ export const anytimeRepairingAStar: Algorithm = function * (
     }
   }
 
-  hScores.set(source, h.get(graph, source.x, source.y, goal.x, goal.y))
+  hScores.set(source, h.get(graph, source, goal))
   gScores.set(source, 0)
   hScores.set(goal, 0)
   gScores.set(goal, Infinity)
@@ -67,7 +67,7 @@ export const anytimeRepairingAStar: Algorithm = function * (
   }
   while (epsilon > 1) {
     epsilon = Math.max(1, epsilon - 1)
-    while (openSet.size > 0) inconsistentSet.add(openSet.pop() as GridVertex)
+    while (openSet.size > 0) inconsistentSet.add(openSet.pop() as S)
     for (const vertex of inconsistentSet) {
       const fScore = 
         (gScores.get(vertex) as number) + 

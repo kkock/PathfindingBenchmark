@@ -1,22 +1,22 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import type { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
+import type { SearchDomain } from '../graph/Graph'
 
 import { Cost } from '../services/Cost'
 import { InadmissibleHeuristic } from '../services/Heuristic'
 import { BinaryHeap } from '../ds/BinaryHeap'
 
-class SearchNode {
-  public readonly vertex: GridVertex
-  public children = new Set<SearchNode>()
-  public parents = new Set<SearchNode>()
+class SearchNode<S> {
+  public readonly vertex: S
+  public children = new Set<SearchNode<S>>()
+  public parents = new Set<SearchNode<S>>()
   public heuristic: number | undefined
   private expandState = false
-  public bestChild: SearchNode | undefined
+  public bestChild: SearchNode<S> | undefined
   public bestChildTotalCost: number | undefined
-  public costs = new Map<SearchNode, number>()
+  public costs = new Map<SearchNode<S>, number>()
 
-  constructor (vertex: GridVertex) {
+  constructor (vertex: S) {
     this.vertex = vertex
   }
 
@@ -36,13 +36,11 @@ class SearchNode {
     return this.bestChildTotalCost ?? Infinity
   }
 
-  getEdgeCost (graph: GridGraph, costGetter: Cost, child: SearchNode): number {
+  getEdgeCost (graph: SearchDomain<S>, costGetter: Cost<S>, child: SearchNode<S>): number {
     if (!this.costs.has(child)) {
       this.costs.set(child, costGetter.get(graph,
-        this.vertex.x,
-        this.vertex.y,
-        child.vertex.x,
-        child.vertex.y
+        this.vertex,
+        child.vertex
       ))
     }
 
@@ -50,7 +48,7 @@ class SearchNode {
   }
 }
 
-function reconstructPath (sourceNode: SearchNode): GridVertex[] {
+function reconstructPath<S> (sourceNode: SearchNode<S>): S[] {
   const path = [sourceNode.vertex]
   let node = sourceNode
   while (node.bestChild != null) {
@@ -60,23 +58,23 @@ function reconstructPath (sourceNode: SearchNode): GridVertex[] {
   return path
 }
 
-export const latticeAStar: Algorithm = function * (
-  graph: GridGraph,
-  services: InstanceRegistry<SearchService>,
-  source: GridVertex,
-  goal: GridVertex,
+export const latticeAStar: Algorithm = function * <S> (
+  graph: SearchDomain<S>,
+  services: InstanceRegistry<SearchService<S>>,
+  source: S,
+  goal: S,
   opts: { [key: string]: any } = {}
-): Generator<AlgorithmResult, undefined, void> {
+): Generator<AlgorithmResult<S>, undefined, void> {
   const h = services.get(InadmissibleHeuristic)
   const g = services.get(Cost)
-  const openSet = new BinaryHeap<SearchNode>()
-  const nodes = new Map<GridVertex, SearchNode>()
+  const openSet = new BinaryHeap<SearchNode<S>>()
+  const nodes = new Map<S, SearchNode<S>>()
   let bestSolutionCost = Infinity
 
-  function addToOpenSet (node: SearchNode): void {
+  function addToOpenSet (node: SearchNode<S>): void {
     if (!node.getExpandState()) {
       if (node.heuristic == null) {
-        node.heuristic = h.get(graph, node.vertex.x, node.vertex.y, goal.x, goal.y)
+        node.heuristic = h.get(graph, node.vertex, goal)
       }
       if (node.heuristic + node.getTotalCost() < bestSolutionCost) {
         node.setExpandState(true)
@@ -85,7 +83,7 @@ export const latticeAStar: Algorithm = function * (
     }
   }
 
-  function addChild (parent: SearchNode, child: SearchNode): void {
+  function addChild (parent: SearchNode<S>, child: SearchNode<S>): void {
     parent.children.add(child)
     child.parents.add(parent)
 
@@ -97,7 +95,7 @@ export const latticeAStar: Algorithm = function * (
     }
   }
 
-  function propagateCostChange (node: SearchNode): void {
+  function propagateCostChange (node: SearchNode<S>): void {
     const totalNodeCost = node.getTotalCost()
     for (const parent of node.parents) {
       const tentativeCost = parent.getEdgeCost(graph, g, node) + totalNodeCost
@@ -110,11 +108,11 @@ export const latticeAStar: Algorithm = function * (
     }
   }
 
-  const goalNode = new SearchNode(goal)
+  const goalNode = new SearchNode<S>(goal)
   nodes.set(goal, goalNode)
   goalNode.bestChildTotalCost = Infinity
 
-  const sourceNode = new SearchNode(source)
+  const sourceNode = new SearchNode<S>(source)
   nodes.set(source, sourceNode)
   sourceNode.bestChildTotalCost = 0
   addToOpenSet(sourceNode)
@@ -123,13 +121,13 @@ export const latticeAStar: Algorithm = function * (
   let nodesExpanded = 0
 
   while (openSet.size > 0) {
-    const node = openSet.pop() as SearchNode
+    const node = openSet.pop() as SearchNode<S>
     node.setExpandState(false)
     nodesExpanded++
-    for (const nextVertex of node.vertex.neighbors) {
+    for (const nextVertex of graph.successors(node.vertex)) {
       if (!nodes.has(nextVertex)) {
         nodesGenerated++
-        const nextNode = new SearchNode(nextVertex)
+        const nextNode = new SearchNode<S>(nextVertex)
         nodes.set(nextVertex, nextNode)
         nextNode.setExpandState(true)
         addChild(nextNode, node)
@@ -147,7 +145,7 @@ export const latticeAStar: Algorithm = function * (
           addToOpenSet(nextNode)
         }
       } else {
-        const nextNode = nodes.get(nextVertex) as SearchNode
+        const nextNode = nodes.get(nextVertex) as SearchNode<S>
         addChild(nextNode, node)
         if (nextNode === goalNode) {
           const goalCost = nextNode.getTotalCost()

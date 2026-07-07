@@ -1,13 +1,21 @@
-import type { GridGraph, GridVertex } from '../graph/GridGraph'
-import { euclideanDistance } from './misc'
+import type { SearchDomain } from '../graph/Graph'
+import { Point, type GridGraph, type GridVertex } from '../graph/GridGraph'
+import { VacuumState, VacuumWorld } from '../graph/VacuumWorldGraph'
+import { countSetBits, euclideanDistance } from './misc'
 
-type CostCallback = (graph: GridGraph, x1: number, y1: number, x2: number, y2: number) => number
+type CostCallback<
+  S,
+  G extends SearchDomain<S> = SearchDomain<S>
+> = (graph: G, state1: S, state2: S) => number
 
-export class Cost {
-  public readonly get: CostCallback
+export class Cost<
+  S,
+  G extends SearchDomain<S> = SearchDomain<S>
+> {
+  public readonly get: CostCallback<S, G>
   public readonly name: string
 
-  constructor (cb: CostCallback, name: string) {
+  constructor (cb: CostCallback<S, G>, name: string) {
     this.get = cb
     this.name = name
   }
@@ -19,7 +27,7 @@ export class Cost {
  * This benchmark calculates valid neighbors ahead of time so using euclidean
  * distance is satisfactory here.
  */
-export const euclideanCost = new Cost((_, ...args) => euclideanDistance(...args), 'euclidean')
+export const euclideanCost = new Cost<Point, GridGraph>((_, ...args) => euclideanDistance(...args), 'euclidean')
 
 /**
  * Guards cost takes the amount of guards that see a tile (encoded as a
@@ -31,7 +39,7 @@ export const euclideanCost = new Cost((_, ...args) => euclideanDistance(...args)
  * calculated ahead of time, no cost call should ever result in `NaN`.
  * @see https://github.com/Sajjad-moghadam/Guards
  */
-export const guardsCost = new Cost((graph, x1, y1, x2, y2) => {
+export const guardsCost = new Cost<Point, GridGraph>((graph: GridGraph, [x1, y1], [x2, y2]) => {
   const vertices = x1 === x2 || y1 === y2
     ? [
         graph.getVertex(`${x1},${y1}`),
@@ -44,12 +52,22 @@ export const guardsCost = new Cost((graph, x1, y1, x2, y2) => {
         graph.getVertex(`${x2},${y2}`)
       ]
 
-  return euclideanDistance(x1, y1, x2, y2) * (vertices as GridVertex[]).reduce((acc, vertex, _, a) => acc + (2 ** parseInt(vertex.value, 36)) / a.length, 0)
+  return euclideanDistance([x1, y1], [x2, y2]) * (vertices as GridVertex[]).reduce((acc, vertex, _, a) => acc + (2 ** parseInt(vertex.value, 36)) / a.length, 0)
 }, 'euclidean-guards')
 
-export function getWeightedCost (weight: number, cost: Cost): Cost {
-  const cb: CostCallback = (...args) => weight * cost.get(...args)
+export function getWeightedCost<S> (weight: number, cost: Cost<S>): Cost<S> {
+  const cb: CostCallback<S> = (...args) => weight * cost.get(...args)
   return new Cost(cb, `${cost.name}(${weight})`)
 }
 
-export class ApproximateCost extends Cost {}
+export const unitCost = new Cost<any>(() => 1, 'unit')
+
+export const heavyVacuumCost = new Cost<VacuumState, VacuumWorld>((graph, state1, state2) => {
+  const maxDirtPileCount = graph.dirtPositions.length
+  const setBits = countSetBits(state1.remaining)
+  const robotWeight = maxDirtPileCount - setBits
+
+  return 1 + robotWeight
+}, 'heavy-vacuum')
+
+export class ApproximateCost<S> extends Cost<S> {}

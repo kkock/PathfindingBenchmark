@@ -20,17 +20,11 @@ export class Graph {
 }
 */
 
-type HeuristicCallback<S> = (domain: SearchDomain<S>, state: S) => number
-type CostCallback<S> = (domain: SearchDomain<S>, state: S) => number
-type ActionEstimateCallback<S> = (domain: SearchDomain<S>, state: S) => number
+// type HeuristicCallback<S> = (domain: SearchDomain<S>, state: S) => number
+// type CostCallback<S> = (domain: SearchDomain<S>, state: S) => number
+// type ActionEstimateCallback<S> = (domain: SearchDomain<S>, state: S) => number
 
-interface Successor<S> {
-  state: S
-  cost: number
-}
-
-interface SearchDomain<S> {
-  successors (state: S): Iterable<Successor<S>>
-  isGoal (state: S): boolean
-  key (state: S): string
+export interface SearchDomain<S> {
+  successors (state: S): Iterable<S>
+  normalize (state: S): S
 }

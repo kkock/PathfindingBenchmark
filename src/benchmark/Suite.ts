@@ -1,21 +1,24 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import { graphFromMap, parseMap } from '../dataLoaders/MapLoader'
-import { parseScen, type ScenDef } from '../dataLoaders/ScenLoader'
-import type { Graph, Vertex } from '../graph/Graph'
+import { gridGraphFromMap, parseMap, vacuumWorldFromMap } from '../dataLoaders/MapLoader'
+import { type GenericScenDef, parseScen, type ScenDef } from '../dataLoaders/ScenLoader'
+//import type { GridGraph, Vertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
+import type { SearchDomain } from '../graph/Graph'
+import type { GridGraph, Point } from '../graph/GridGraph'
 import { Cost } from '../services/Cost'
 
 import { hrtime } from 'node:process'
 import fs from 'node:fs'
 import chalk from 'chalk'
 import { euclideanHeuristic, getWeightedHeuristic } from '../services/Heuristic'
+import { VacuumState, VacuumWorld } from '../graph/VacuumWorldGraph'
 
-export class Suite {
-  private readonly graph: Graph
-  private readonly scenarios: ScenDef[]
+export class Suite<S, T extends SearchDomain<S> = SearchDomain<S>> {
+  private readonly graph: T
+  private readonly scenarios: GenericScenDef<S>[]
   public readonly mapName: string
 
-  constructor (graph: Graph, scenarios: ScenDef[], mapName: string) {
+  constructor (graph: T, scenarios: GenericScenDef<S>[], mapName: string) {
     this.graph = graph
     this.scenarios = scenarios
     this.mapName = mapName
@@ -23,16 +26,16 @@ export class Suite {
 
   instance (
     algorithm: Algorithm,
-    services: InstanceRegistry<SearchService>,
+    services: InstanceRegistry<SearchService<S>>,
     opts: { [key: string]: any } = {}
-  ): SuiteInstance {
+  ): SuiteInstance<S> {
     return new SuiteInstance(this.graph, this.scenarios, services, algorithm, opts)
   }
 }
 
-export interface ProcessedSingleBenchmarkResult {
+export interface ProcessedSingleBenchmarkResult<S> {
   results: Array<{
-    path?: Array<[number, number]>
+    path?: Array<S>
     cost: number
     time: number
     searchMetrics: { nodesGenerated: number, nodesExpanded: number }
@@ -40,21 +43,21 @@ export interface ProcessedSingleBenchmarkResult {
   scenario: string
 }
 
-interface ProcessedCombinedBenchmarkResult {
-  path?: Array<Array<[number, number]>>
+interface ProcessedCombinedBenchmarkResult<S> {
+  path?: Array<Array<S>>
   cost: number[]
   time: number[]
   searchMetrics: { nodesGenerated: number[], nodesExpanded: number[] }
 }
 
-export interface ProcessedBenchmarkResult {
-  results: ProcessedCombinedBenchmarkResult[]
+export interface ProcessedBenchmarkResult<S> {
+  results: ProcessedCombinedBenchmarkResult<S>[]
   scenario: string
 }
 
-export interface BenchmarkResult {
+export interface BenchmarkResult<S> {
   startTime: bigint
-  results: Array<{ result: AlgorithmResult, time: bigint }>
+  results: Array<{ result: AlgorithmResult<S>, time: bigint }>
   /**
    * @todo replace this with some sort of ID instead, we can look up which
    * scenario it was with that; e.g. `path/to/file.scen(lineNum)`
@@ -62,21 +65,21 @@ export interface BenchmarkResult {
   scenario: string // ScenDef
 }
 
-export interface SerializedBenchmarkResult {
+export interface SerializedBenchmarkResult<S> {
   algorithm: string
   services: { [key: string]: string }
   opts: { [key: string]: any }
-  result: ProcessedBenchmarkResult
+  result: ProcessedBenchmarkResult<S>
 }
 
-export class SuiteInstance {
-  private readonly graph: Graph
-  private readonly scenarios: ScenDef[]
+export class SuiteInstance<S> {
+  private readonly graph: SearchDomain<S>
+  private readonly scenarios: GenericScenDef<S>[]
   private readonly algorithm: Algorithm
-  private readonly services: InstanceRegistry<SearchService>
+  private readonly services: InstanceRegistry<SearchService<S>>
   private readonly opts: { [key: string]: any }
 
-  constructor (graph: Graph, scenarios: ScenDef[], services: InstanceRegistry<SearchService>, algorithm: Algorithm, opts: { [key: string]: any } = {}) {
+  constructor (graph: SearchDomain<S>, scenarios: GenericScenDef<S>[], services: InstanceRegistry<SearchService<S>>, algorithm: Algorithm, opts: { [key: string]: any } = {}) {
     this.graph = graph
     this.scenarios = scenarios
     this.algorithm = algorithm
@@ -84,14 +87,14 @@ export class SuiteInstance {
     this.opts = opts
   }
 
-  private collectResult (index: number): ProcessedSingleBenchmarkResult {
-    const scenario = this.scenarios[index] as ScenDef
-    const source = this.graph.getVertex(`${scenario.start.x},${scenario.start.y}`) as Vertex
-    const goal = this.graph.getVertex(`${scenario.goal.x},${scenario.goal.y}`) as Vertex
+  private collectResult (index: number): ProcessedSingleBenchmarkResult<S> {
+    const scenario = this.scenarios[index] as GenericScenDef<S>
+    const source = this.graph.normalize(scenario.start) //this.graph.getVertex(`${scenario.start},${scenario.start.y}`) as Vertex
+    const goal = this.graph.normalize(scenario.goal) //this.graph.getVertex(`${scenario.goal.x},${scenario.goal.y}`) as Vertex
     const generator = this.algorithm(this.graph, this.services, source, goal, this.opts)
 
     const resultTimes: bigint[] = []
-    const algorithmResults: AlgorithmResult[] = []
+    const algorithmResults: AlgorithmResult<S>[] = []
     const startTime = hrtime.bigint()
     for (const result of generator) {
       resultTimes.push(hrtime.bigint())
@@ -105,13 +108,13 @@ export class SuiteInstance {
     })
   }
 
-  run (iterations: number = 1): ProcessedBenchmarkResult[] {
-    const results: ProcessedBenchmarkResult[] = []
+  run (iterations: number = 1): ProcessedBenchmarkResult<S>[] {
+    const results: ProcessedBenchmarkResult<S>[] = []
     if (iterations < 1) return results
 
     for (let i = 0; i < this.scenarios.length; i++) {
       console.info(chalk.cyan(`Running scenario ${i + 1}/${this.scenarios.length}`))
-      const iterationResults: ProcessedSingleBenchmarkResult[] = []
+      const iterationResults: ProcessedSingleBenchmarkResult<S>[] = []
       for (let j = 0; j < iterations; j++) {
         iterationResults.push(this.collectResult(i))
       }
@@ -119,14 +122,14 @@ export class SuiteInstance {
       const combinedResults = this.combineResults(iterationResults)
       results.push({
         results: combinedResults,
-        scenario: (iterationResults[0] as ProcessedSingleBenchmarkResult).scenario
+        scenario: (iterationResults[0] as ProcessedSingleBenchmarkResult<S>).scenario
       })
     }
 
     return results
   }
 
-  private combineResults (trials: ProcessedSingleBenchmarkResult[]): ProcessedCombinedBenchmarkResult[] {
+  private combineResults (trials: ProcessedSingleBenchmarkResult<S>[]): ProcessedCombinedBenchmarkResult<S>[] {
     if (trials.length === 0) return []
 
     const maxLength = Math.max(...trials.map(trial => trial.results.length))
@@ -141,19 +144,21 @@ export class SuiteInstance {
     }))
   }
 
-  private processBenchmarkResult (result: BenchmarkResult, includePath: boolean = false): ProcessedSingleBenchmarkResult {
+  private processBenchmarkResult (result: BenchmarkResult<S>, includePath: boolean = false): ProcessedSingleBenchmarkResult<S> {
     const costGetter = this.services.get(Cost)
     return {
       results: result.results.map(value => {
         const time = Number(value.time - result.startTime) / 1000
-        const path = value.result.path.map<[number, number]>(vertex => [vertex.x, vertex.y])
+        const path = value.result.path//.map<S>(vertex => [vertex.x, vertex.y])
         const searchMetrics = value.result.searchMetrics
         let cost = 0
 
         for (let i = 0; i < path.length - 1; i++) {
-          const [x1, y1] = path[i] as [number, number]
-          const [x2, y2] = path[i + 1] as [number, number]
-          cost += costGetter.get(this.graph, x1, y1, x2, y2)
+          cost += costGetter.get(
+            this.graph, 
+            path[i] as S,
+            path[i + 1] as S
+          )
         }
 
         return includePath ? { time, path, cost, searchMetrics } : { time, cost, searchMetrics }
@@ -169,11 +174,11 @@ export function prepareSuites (
   scenFile: ScenDef[],
   mapFilePaths: Map<string, string>,
   isGuardsMap: boolean = true,
-  fallbackOpts: MapOpts = graphFromMap.movingAiOpts
-): Suite[] {
+  fallbackOpts: MapOpts = gridGraphFromMap.movingAiOpts
+): Suite<Point, GridGraph>[] {
   const mapScenDefs = new Map<string, ScenDef[]>()
-  const graphs = new Map<string, Graph>()
-  const result: Suite[] = []
+  const graphs = new Map<string, GridGraph>()
+  const result: Suite<Point, GridGraph>[] = []
 
   //scenFile = scenFile.slice(0, 100)
   scenFile = scenFile.slice(-1)
@@ -188,7 +193,7 @@ export function prepareSuites (
 
     if (!graphs.has(scenLine.map)) {
       const map = parseMap(fs.readFileSync(mapFilePath).toString())
-      const graph = graphFromMap(map, graphFromMap.diagonalNeighborPolicy, isGuardsMap ? graphFromMap.guardsOpts : fallbackOpts)
+      const graph = gridGraphFromMap(map, gridGraphFromMap.diagonalNeighborPolicy, isGuardsMap ? gridGraphFromMap.guardsOpts : fallbackOpts)
       graphs.set(scenLine.map, graph)
     }
 
@@ -197,20 +202,34 @@ export function prepareSuites (
   }
 
   for (const [mapName, scenDefs] of mapScenDefs.entries()) {
-    const graph = graphs.get(mapName) as Graph
+    const graph = graphs.get(mapName) as GridGraph
     result.push(new Suite(graph, scenDefs, mapName))
   }
 
   return result
 }
 
-export function runSuites (
-  suites: Suite[],
+export function prepareVacuumSuites (
+  mapFilePaths: Map<string, string>,
+): Suite<VacuumState, VacuumWorld>[] {
+  const result: Suite<VacuumState, VacuumWorld>[] = []
+
+  for (const [mapName, mapFilePath] of mapFilePaths.entries()) {
+    const map = parseMap(fs.readFileSync(mapFilePath).toString())
+    const { domain, scen } = vacuumWorldFromMap(mapName, map)
+    result.push(new Suite(domain, [scen], mapName))
+  }
+
+  return result
+}
+
+export function runSuites<S> (
+  suites: Suite<S>[],
   algorithms: Algorithm[],
-  services: InstanceRegistry<SearchService>,
+  services: InstanceRegistry<SearchService<S>>,
   opts: { [key: string]: any } = {}
-): SerializedBenchmarkResult[] {
-  const results: SerializedBenchmarkResult[] = []
+): SerializedBenchmarkResult<S>[] {
+  const results: SerializedBenchmarkResult<S>[] = []
   for (const suite of suites) {
     for (const algorithm of algorithms) {
       const instance = suite.instance(algorithm, services, opts)

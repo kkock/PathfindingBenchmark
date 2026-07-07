@@ -1,25 +1,23 @@
+import type { SearchDomain } from "./Graph"
+
+export type Point = [x: number, y: number]
+
 export class GridVertex {
+  public readonly point: Point
   public readonly neighbors: GridVertex[] = []
-  public readonly x: number
-  public readonly y: number
   public value: string
 
   constructor (x: number, y: number, value: string) {
+    this.point = [x, y]
     this.value = value
-    this.x = x
-    this.y = y
   }
 
   addNeighbor (neighbor: GridVertex): void {
     this.neighbors.push(neighbor)
   }
-
-  getNeighbors (): GridVertex[] {
-    return this.neighbors
-  }
 }
 
-export class GridGraph {
+export class GridGraph implements SearchDomain<Point> {
   private readonly vertices = new Map<string, GridVertex>()
 
   addVertex (key: string, vertex: GridVertex): void {
@@ -32,5 +30,20 @@ export class GridGraph {
 
   hasVertex (key: string): boolean {
     return this.vertices.has(key)
+  }
+
+  successors (state: Point): Iterable<Point> {
+    const key = `${state[0]},${state[1]}`
+    if (this.hasVertex(key)) {
+      return this.getVertex(key)!.neighbors.map(vertex => vertex.point)
+    } else {
+      return []
+    }
+  }
+
+  normalize (state: Point): Point {
+    const key = `${state[0]},${state[1]}`
+    if (!this.hasVertex(key)) throw new Error(`State '${key}' does not exist on graph`)
+    return this.getVertex(key)!.point
   }
 }

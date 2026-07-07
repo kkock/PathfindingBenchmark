@@ -1,6 +1,6 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import type { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
+import type { SearchDomain } from '../graph/Graph'
 
 import { Cost } from '../services/Cost'
 import { Heuristic } from '../services/Heuristic'
@@ -12,23 +12,23 @@ import { reconstructPath } from '../services/misc'
  * Note that it uses epsilon in a modified way, hence a low-quality epsilon
  * does not universally have the same effect as a low-quality heuristic.
  */
-export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
-  graph: GridGraph,
-  services: InstanceRegistry<SearchService>,
-  source: GridVertex,
-  goal: GridVertex,
+export const anytimeDynamicallyWeightedAStar: Algorithm = function * <S> (
+  graph: SearchDomain<S>,
+  services: InstanceRegistry<SearchService<S>>,
+  source: S,
+  goal: S,
   opts: { [key: string]: any } = {}
-): Generator<AlgorithmResult, undefined, void> {
+): Generator<AlgorithmResult<S>, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
-  const N = h.get(graph, source.x, source.y, goal.x, goal.y)
+  const N = h.get(graph, source, goal)
   const epsilon: number = opts['epsilon'] ?? 1
-  const gScores = new Map<GridVertex, number>()
-  const dScores = new Map<GridVertex, number>()
+  const gScores = new Map<S, number>()
+  const dScores = new Map<S, number>()
 
-  const cameFrom = new Map<GridVertex, GridVertex>()
-  const openSet = new KeyedBinaryHeap<GridVertex>()
-  openSet.insert(source, h.get(graph, source.x, source.y, goal.x, goal.y))
+  const cameFrom = new Map<S, S>()
+  const openSet = new KeyedBinaryHeap<S>()
+  openSet.insert(source, h.get(graph, source, goal))
   gScores.set(source, 0)
   dScores.set(source, 0)
 
@@ -36,7 +36,7 @@ export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
   let nodesExpanded = 0
 
   while (openSet.size > 0) {
-    const vertex = openSet.pop() as GridVertex
+    const vertex = openSet.pop() as S
     const currentCost = gScores.get(vertex) as number
     const currentDepth = dScores.get(vertex) as number
     nodesExpanded++
@@ -49,12 +49,12 @@ export const anytimeDynamicallyWeightedAStar: Algorithm = function * (
       return
     }
 
-    for (const nextVertex of vertex.neighbors) {
-      const tentativeCost = currentCost + g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
+    for (const nextVertex of graph.successors(vertex)) {
+      const tentativeCost = currentCost + g.get(graph, vertex, nextVertex)
 
       if (gScores.has(goal) && tentativeCost >= (gScores.get(goal) as number)) continue
       if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
-        const hScore = h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y)
+        const hScore = h.get(graph, nextVertex, goal)
         const dScore = currentDepth + 1
         const wScore = dScore <= N ? 1 - dScore / N : 0
         const fScore = tentativeCost + hScore * (1 + epsilon * wScore)

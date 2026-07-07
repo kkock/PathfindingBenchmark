@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 import type { Algorithm, SearchService } from '../Algorithm'
+import type { Point } from '../graph/GridGraph'
 
 import algorithms from '../algorithms/algorithms'
 import { Heuristic, InadmissibleHeuristic, euclideanHeuristic, getWeightedHeuristic } from '../services/Heuristic'
@@ -9,31 +10,57 @@ import { ActionEstimate, chebyshevActionEstimate, euclideanActionEstimate, getWe
 import { generateCombinations } from '../utils'
 import { readScenFiles } from './ScenLoader'
 import { getMapFiles } from './MapLoader'
-import { prepareSuites, runSuites } from '../benchmark/Suite'
+import { prepareSuites, prepareVacuumSuites, runSuites } from '../benchmark/Suite'
 import { InstanceRegistry } from '../Registry'
 
 import fs from 'node:fs'
 import path from 'node:path'
 
-interface BenchmarkConfig {
-  guards: boolean
+interface ScenBenchmarkConfig<S> {
+  type: 'movingai' | 'guards'
   mapPath: string
   scenPath: string
   outPath: string
   algorithms: Algorithm[]
-  services: Map<new (...args: any[]) => SearchService, SearchService[]>
+  services: Map<new (...args: any[]) => SearchService<S>, SearchService<S>[]>
   opts: { [key: string]: any[] }
 }
 
-export function parseBenchmarkConfig (source: string): BenchmarkConfig {
+interface ScenlessBenchmarkConfig<S> {
+  type: 'vacuum'
+  mapPath: string
+  scenPath: null | undefined
+  outPath: string
+  algorithms: Algorithm[]
+  services: Map<new (...args: any[]) => SearchService<S>, SearchService<S>[]>
+  opts: { [key: string]: any[] }
+}
+
+/*interface BenchmarkConfig<S> {
+  type: 'guards' | 'movingai' | 'vacuum'
+  mapPath: string
+  scenPath?: string
+  outPath: string
+  algorithms: Algorithm[]
+  services: Map<new (...args: any[]) => SearchService<S>, SearchService<S>[]>
+  opts: { [key: string]: any[] }
+}*/
+
+type BenchmarkConfig<S> = ScenlessBenchmarkConfig<S> | ScenBenchmarkConfig<S>
+
+export function parseBenchmarkConfig<S> (source: string): BenchmarkConfig<S> {
   const result = JSON.parse(source)
 
-  if (result.guards == null) throw new RangeError('\'guards\' is a required property in a benchmark config file!')
-  else if (typeof result.guards !== 'boolean') throw new RangeError('\'guards\' must be a boolean!')
-  else if (result.mapPath == null) throw new RangeError('\'mapPath\' is a required property in a benchmark config file!')
+  
+  if (result.type == null) throw new RangeError('\'type\' is a required property in a benchmark config file!')
+  else if (typeof result.type !== 'string') throw new RangeError('\'type\' must be a string!')
+
+  const requiresScen = ['guards', 'movingai'].includes(result.type)
+
+  if (result.mapPath == null) throw new RangeError('\'mapPath\' is a required property in a benchmark config file!')
   else if (typeof result.mapPath !== 'string') throw new RangeError('\'mapPath\' must be a string!')
-  else if (result.scenPath == null) throw new RangeError('\'scenPath\' is a required property in a benchmark config file!')
-  else if (typeof result.scenPath !== 'string') throw new RangeError('\'scenPath\' must be a string!')
+  else if (requiresScen && result.scenPath == null) throw new RangeError('\'scenPath\' is a required property in a benchmark config file for this scenario type!')
+  else if (requiresScen && typeof result.scenPath !== 'string') throw new RangeError('\'scenPath\' must be a string!')
   else if (result.outPath == null) throw new RangeError('\'outPath\' is a required property in a benchmark config file!')
   else if (typeof result.outPath !== 'string') throw new RangeError('\'outPath\' must be a string!')
   else if (result.algorithms == null) throw new RangeError('\'algorithms\' is a required property in a benchmark config file!')
@@ -43,7 +70,7 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
   else if (result.opts == null) throw new RangeError('\'opts\' is a required property in a benchmark config file!')
   else if (!(result.opts instanceof Object)) throw new RangeError('\'opts\' must be an object!')
 
-  const services: Map<new (...args: any[]) => SearchService, SearchService[]> = new Map([
+  const services: Map<new (...args: any[]) => SearchService<S>, SearchService<S>[]> = new Map([
     [Heuristic, []],
     [InadmissibleHeuristic, []],
     [Cost, []],
@@ -52,16 +79,23 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
     [InadmissibleActionEstimate, []]
   ])
 
+  const _euclideanHeuristic = euclideanHeuristic as Heuristic<S>
+  const _euclideanCost = euclideanCost as unknown as Cost<S>
+  const _guardsCost = guardsCost as unknown as Cost<S>
+  const _chebyshevActionEstimate = chebyshevActionEstimate as ActionEstimate<S>
+  const _manhattanActionEstimate = manhattanActionEstimate as ActionEstimate<S>
+  const _euclideanActionEstimate = euclideanActionEstimate as ActionEstimate<S>
+
   for (const [serviceKey, serviceValues] of Object.entries(result.services as { [key: string]: string })) {
     for (const serviceValue of serviceValues) {
       switch (serviceKey) {
         case Heuristic.name:
           if (serviceValue === 'euclidean') {
-            services.get(Heuristic)!.push(euclideanHeuristic)
+            services.get(Heuristic)!.push(_euclideanHeuristic)
           } else if (/^euclidean\([\d.]+\)$/.test(serviceValue)) {
             const match = /^euclidean\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(Heuristic)!.push(getWeightedHeuristic(weight, euclideanHeuristic))
+            services.get(Heuristic)!.push(getWeightedHeuristic(weight, _euclideanHeuristic))
           } else {
             throw new RangeError(`Unknown heuristic '${serviceValue}'`)
           }
@@ -69,11 +103,11 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
 
         case InadmissibleHeuristic.name:
           if (serviceValue === 'euclidean') {
-            services.get(InadmissibleHeuristic)!.push(euclideanHeuristic)
+            services.get(InadmissibleHeuristic)!.push(_euclideanHeuristic)
           } else if (/^euclidean\([\d.]+\)$/.test(serviceValue)) {
             const match = /^euclidean\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(InadmissibleHeuristic)!.push(getWeightedHeuristic(weight, euclideanHeuristic))
+            services.get(InadmissibleHeuristic)!.push(getWeightedHeuristic(weight, _euclideanHeuristic))
           } else {
             throw new RangeError(`Unknown heuristic '${serviceValue}'`)
           }
@@ -81,17 +115,17 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
 
         case Cost.name:
           if (serviceValue === 'euclidean') {
-            services.get(Cost)!.push(euclideanCost)
+            services.get(Cost)!.push(_euclideanCost)
           } else if (/^euclidean\([\d.]+\)$/.test(serviceValue)) {
             const match = /^euclidean\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(Cost)!.push(getWeightedCost(weight, euclideanCost))
+            services.get(Cost)!.push(getWeightedCost(weight, _euclideanCost))
           } else if (serviceValue === 'euclidean-guards') {
-            services.get(Cost)!.push(guardsCost)
+            services.get(Cost)!.push(_guardsCost)
           } else if (/^euclidean-guards\([\d.]+\)$/.test(serviceValue)) {
             const match = /^euclidean-guards\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(Cost)!.push(getWeightedCost(weight, guardsCost))
+            services.get(Cost)!.push(getWeightedCost(weight, _guardsCost))
           } else {
             throw new RangeError(`Unknown cost '${serviceValue}'`)
           }
@@ -99,17 +133,17 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
 
         case ApproximateCost.name:
           if (serviceValue === 'euclidean') {
-            services.get(ApproximateCost)!.push(euclideanCost)
+            services.get(ApproximateCost)!.push(_euclideanCost)
           } else if (/^euclidean\([\d.]+\)$/.test(serviceValue)) {
             const match = /^euclidean\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(ApproximateCost)!.push(getWeightedCost(weight, euclideanCost))
+            services.get(ApproximateCost)!.push(getWeightedCost(weight, _euclideanCost))
           } else if (serviceValue === 'euclidean-guards') {
-            services.get(ApproximateCost)!.push(guardsCost)
+            services.get(ApproximateCost)!.push(_guardsCost)
           } else if (/^euclidean-guards\([\d.]+\)$/.test(serviceValue)) {
             const match = /^euclidean-guards\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(ApproximateCost)!.push(getWeightedCost(weight, guardsCost))
+            services.get(ApproximateCost)!.push(getWeightedCost(weight, _guardsCost))
           } else {
             throw new RangeError(`Unknown cost '${serviceValue}'`)
           }
@@ -117,23 +151,23 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
 
         case ActionEstimate.name:
           if (serviceValue === 'chebyshev') {
-            services.get(ActionEstimate)!.push(chebyshevActionEstimate)
+            services.get(ActionEstimate)!.push(_chebyshevActionEstimate)
           } else if (/^chebyshev\([\d.]+\)$/.test(serviceValue)) {
             const match = /^chebyshev\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(ActionEstimate)!.push(getWeightedActionEstimate(weight, chebyshevActionEstimate))
+            services.get(ActionEstimate)!.push(getWeightedActionEstimate(weight, _chebyshevActionEstimate))
           } else if (serviceValue === 'manhattan') {
-            services.get(ActionEstimate)!.push(manhattanActionEstimate)
+            services.get(ActionEstimate)!.push(_manhattanActionEstimate)
           } else if (/^manhattan\([\d.]+\)$/.test(serviceValue)) {
             const match = /^manhattan\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(ActionEstimate)!.push(getWeightedActionEstimate(weight, manhattanActionEstimate))
+            services.get(ActionEstimate)!.push(getWeightedActionEstimate(weight, _manhattanActionEstimate))
           } else if (serviceValue === 'euclidean') {
-            services.get(ActionEstimate)!.push(euclideanActionEstimate)
+            services.get(ActionEstimate)!.push(_euclideanActionEstimate)
           } else if (/^euclidean\([\d.]+\)$/.test(serviceValue)) {
             const match = /^euclidean\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(ActionEstimate)!.push(getWeightedActionEstimate(weight, euclideanActionEstimate))
+            services.get(ActionEstimate)!.push(getWeightedActionEstimate(weight, _euclideanActionEstimate))
           } else {
             throw new RangeError(`Unknown heuristic '${serviceValue}'`)
           }
@@ -141,17 +175,23 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
 
         case InadmissibleActionEstimate.name:
           if (serviceValue === 'chebyshev') {
-            services.get(InadmissibleActionEstimate)!.push(chebyshevActionEstimate)
+            services.get(InadmissibleActionEstimate)!.push(_chebyshevActionEstimate)
           } else if (/^chebyshev\([\d.]+\)$/.test(serviceValue)) {
             const match = /^chebyshev\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(InadmissibleActionEstimate)!.push(getWeightedHeuristic(weight, chebyshevActionEstimate))
+            services.get(InadmissibleActionEstimate)!.push(getWeightedHeuristic(weight, _chebyshevActionEstimate))
           } else if (serviceValue === 'manhattan') {
-            services.get(InadmissibleActionEstimate)!.push(manhattanActionEstimate)
+            services.get(InadmissibleActionEstimate)!.push(_manhattanActionEstimate)
           } else if (/^manhattan\([\d.]+\)$/.test(serviceValue)) {
             const match = /^manhattan\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
-            services.get(InadmissibleActionEstimate)!.push(getWeightedHeuristic(weight, manhattanActionEstimate))
+            services.get(InadmissibleActionEstimate)!.push(getWeightedHeuristic(weight, _manhattanActionEstimate))
+          } else if (serviceValue === 'euclidean') {
+            services.get(InadmissibleActionEstimate)!.push(_euclideanActionEstimate)
+          } else if (/^euclidean\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^euclidean\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
+            const weight = Number(match[1])
+            services.get(InadmissibleActionEstimate)!.push(getWeightedActionEstimate(weight, _euclideanActionEstimate))
           } else {
             throw new RangeError(`Unknown heuristic '${serviceValue}'`)
           }
@@ -163,10 +203,10 @@ export function parseBenchmarkConfig (source: string): BenchmarkConfig {
     }
   }
 
-  const config: BenchmarkConfig = {
-    guards: result.guards as boolean,
+  const config: BenchmarkConfig<S> = {
+    type: result.type as 'movingai' | 'guards' | 'vacuum',
     mapPath: result.mapPath as string,
-    scenPath: result.scenPath as string,
+    scenPath: result.scenPath,
     outPath: result.outPath as string,
     algorithms: (result.algorithms as string[]).map(algorithmName => {
       const algorithm = algorithms.find(algorithm => algorithm.name === algorithmName)
@@ -200,12 +240,19 @@ export function runConfig (configPath: string): void {
     const serviceSets = generateCombinations(new Map([...config.services].filter(([service]) => algorithm.availableServices.has(service))))
     for (const opts of optsSets) {
       for (const services of serviceSets) {
-        const scenFiles = readScenFiles(config.scenPath)
-        const mapFiles = getMapFiles(config.mapPath)
-        for (const [scenName, scenDefs] of scenFiles) {
-          const suites = prepareSuites(scenDefs, mapFiles, config.guards)
-          const result = runSuites(suites, [algorithm], services as InstanceRegistry<SearchService>, opts)
+        if (config.scenPath == null) {
+          const mapFiles = getMapFiles(config.mapPath)
+          const suites = prepareVacuumSuites(mapFiles)
+          const result = runSuites(suites, [algorithm], services as InstanceRegistry<SearchService<any>>, opts)
           fs.appendFileSync(config.outPath, result.map(result => JSON.stringify(result)).join('\n') + '\n')
+        } else {
+          const scenFiles = readScenFiles(config.scenPath)
+          const mapFiles = getMapFiles(config.mapPath)
+          for (const [scenName, scenDefs] of scenFiles) {
+            const suites = prepareSuites(scenDefs, mapFiles, config.type === 'guards')
+            const result = runSuites(suites, [algorithm], services as InstanceRegistry<SearchService<Point>>, opts)
+            fs.appendFileSync(config.outPath, result.map(result => JSON.stringify(result)).join('\n') + '\n')
+          }
         }
       }
     }

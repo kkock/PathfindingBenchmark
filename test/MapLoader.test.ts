@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals'
-import { parseMap, isPassable, graphFromMap } from '../src/dataLoaders/MapLoader'
+import { parseMap, isPassable, gridGraphFromMap } from '../src/dataLoaders/MapLoader'
 import { diagonalNeighborPolicy, strTo2DArr } from './utils'
 
 function getMapFile (str: string[][]) {
@@ -65,7 +65,7 @@ describe('graphFromMap', () => {
       ..
       .@
     `)
-    const graph = graphFromMap(map, diagonalNeighborPolicy, { passable: new Set('.') })
+    const graph = gridGraphFromMap(map, diagonalNeighborPolicy, { passable: new Set('.') })
     expect(graph.getVertex('0,0')!.neighbors).toContain(graph.getVertex('0,1'))
     expect(graph.getVertex('0,0')!.neighbors).toContain(graph.getVertex('1,0'))
   })
@@ -75,7 +75,7 @@ describe('graphFromMap', () => {
       ..
       .@
     `)
-    const graph = graphFromMap(map, diagonalNeighborPolicy, { passable: new Set('@') })
+    const graph = gridGraphFromMap(map, diagonalNeighborPolicy, { passable: new Set('@') })
     expect(graph.getVertex('0,0')!.neighbors).not.toContain(graph.getVertex('0,1'))
     expect(graph.getVertex('0,0')!.neighbors).not.toContain(graph.getVertex('1,0'))
   })
@@ -85,7 +85,7 @@ describe('graphFromMap', () => {
       ..
       ..
     `)
-    const graph = graphFromMap(map, diagonalNeighborPolicy, { passable: new Set('.') })
+    const graph = gridGraphFromMap(map, diagonalNeighborPolicy, { passable: new Set('.') })
     expect(graph.getVertex('0,0')!.neighbors).toContain(graph.getVertex('1,1'))
   })
 
@@ -94,7 +94,7 @@ describe('graphFromMap', () => {
       .@
       ..
     `)
-    const graph = graphFromMap(map, diagonalNeighborPolicy, { passable: new Set('.') })
+    const graph = gridGraphFromMap(map, diagonalNeighborPolicy, { passable: new Set('.') })
     expect(graph.getVertex('0,0')!.neighbors).not.toContain(graph.getVertex('1,1'))
   })
 })

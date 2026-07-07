@@ -1,14 +1,14 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import type { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
+import type { SearchDomain } from '../graph/Graph'
 
 import { Cost } from '../services/Cost'
 import { Heuristic } from '../services/Heuristic'
 import { reconstructPath } from '../services/misc'
 import { quickSelect } from '../services/QuickSelect'
 
-type BeamNode = {
-  vertex: GridVertex
+type BeamNode<S> = {
+  vertex: S
   g: number
   f: number
 }
@@ -16,33 +16,33 @@ type BeamNode = {
 /**
  * Layered beam search without backtracking
  */
-export const beamSearch: Algorithm = function * (
-  graph: GridGraph,
-  services: InstanceRegistry<SearchService>,
-  source: GridVertex,
-  goal: GridVertex,
+export const beamSearch: Algorithm = function * <S> (
+  graph: SearchDomain<S>,
+  services: InstanceRegistry<SearchService<S>>,
+  source: S,
+  goal: S,
   opts: { [key: string]: any } = {}
-): Generator<AlgorithmResult, undefined, void> {
+): Generator<AlgorithmResult<S>, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
-  const gScores = new Map<GridVertex, number>()
+  const gScores = new Map<S, number>()
   const epsilon: number = opts['epsilon'] ?? 1
   const beamSize: number = opts['beamSize'] ?? 10
 
-  const cameFrom = new Map<GridVertex, GridVertex>()
+  const cameFrom = new Map<S, S>()
   gScores.set(source, 0)
 
   let nodesGenerated = 1
   let nodesExpanded = 0
 
-  let beam: BeamNode[] = [{
+  let beam: BeamNode<S>[] = [{
     vertex: source,
     g: 0,
-    f: epsilon * h.get(graph, source.x, source.y, goal.x, goal.y)
+    f: epsilon * h.get(graph, source, goal)
   }]
 
   while (beam.length > 0) {
-    const nextBeam: BeamNode[] = []
+    const nextBeam: BeamNode<S>[] = []
     for (const node of beam) {
       const vertex = node.vertex
       nodesExpanded++
@@ -55,15 +55,15 @@ export const beamSearch: Algorithm = function * (
         return
       }
       
-      for (const nextVertex of vertex.neighbors) {
-        const tentativeCost = node.g + g.get(graph, vertex.x, vertex.y, nextVertex.x, nextVertex.y)
+      for (const nextVertex of graph.successors(vertex)) {
+        const tentativeCost = node.g + g.get(graph, vertex, nextVertex)
         if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
           gScores.set(nextVertex, tentativeCost)
           cameFrom.set(nextVertex, vertex)
           nextBeam.push({
             vertex: nextVertex,
             g: tentativeCost,
-            f: tentativeCost + epsilon * h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y)
+            f: tentativeCost + epsilon * h.get(graph, nextVertex, goal)
           })
           
           nodesGenerated++

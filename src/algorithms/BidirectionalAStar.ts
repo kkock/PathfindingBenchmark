@@ -1,21 +1,21 @@
 import type { Algorithm, AlgorithmResult, SearchService } from '../Algorithm'
-import type { GridGraph, GridVertex } from '../graph/GridGraph'
 import type { InstanceRegistry } from '../Registry'
+import type { SearchDomain } from '../graph/Graph'
 
 import { Cost } from '../services/Cost'
 import { Heuristic } from '../services/Heuristic'
 import { KeyedBinaryHeap } from '../ds/KeyedBinaryHeap'
 
-function reconstructBidirectionalPath (
-  forwardCameFrom: Map<GridVertex, GridVertex>,
-  backwardCameFrom: Map<GridVertex, GridVertex>,
-  source: GridVertex,
-  goal: GridVertex,
-  meeting: GridVertex
-): GridVertex[] {
-  const forwardPath: GridVertex[] = []
+function reconstructBidirectionalPath<S> (
+  forwardCameFrom: Map<S, S>,
+  backwardCameFrom: Map<S, S>,
+  source: S,
+  goal: S,
+  meeting: S
+): S[] {
+  const forwardPath: S[] = []
 
-  let current: GridVertex | undefined = meeting
+  let current: S | undefined = meeting
   while (current !== undefined) {
     forwardPath.push(current)
     if (current === source) break
@@ -24,7 +24,7 @@ function reconstructBidirectionalPath (
 
   forwardPath.reverse()
 
-  const backwardPath: GridVertex[] = []
+  const backwardPath: S[] = []
 
   current = backwardCameFrom.get(meeting)
   while (current !== undefined) {
@@ -36,36 +36,36 @@ function reconstructBidirectionalPath (
   return forwardPath.concat(backwardPath)
 }
 
-export const bidirectionalAStar: Algorithm = function * (
-  graph: GridGraph,
-  services: InstanceRegistry<SearchService>,
-  source: GridVertex,
-  goal: GridVertex,
+export const bidirectionalAStar: Algorithm = function * <S> (
+  graph: SearchDomain<S>,
+  services: InstanceRegistry<SearchService<S>>,
+  source: S,
+  goal: S,
   opts: { [key: string]: any } = {}
-): Generator<AlgorithmResult, undefined, void> {
+): Generator<AlgorithmResult<S>, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
   const epsilon: number = opts['epsilon'] ?? 1
 
-  const forwardG = new Map<GridVertex, number>()
-  const backwardG = new Map<GridVertex, number>()
-  const forwardCameFrom = new Map<GridVertex, GridVertex>()
-  const backwardCameFrom = new Map<GridVertex, GridVertex>()
-  const forwardOpen = new KeyedBinaryHeap<GridVertex>()
-  const backwardOpen = new KeyedBinaryHeap<GridVertex>()
+  const forwardG = new Map<S, number>()
+  const backwardG = new Map<S, number>()
+  const forwardCameFrom = new Map<S, S>()
+  const backwardCameFrom = new Map<S, S>()
+  const forwardOpen = new KeyedBinaryHeap<S>()
+  const backwardOpen = new KeyedBinaryHeap<S>()
 
   forwardG.set(source, 0)
   backwardG.set(goal, 0)
 
-  forwardOpen.insert(source, epsilon * h.get(graph, source.x, source.y, goal.x, goal.y))
-  backwardOpen.insert(goal, epsilon * h.get(graph, goal.x, goal.y, source.x, source.y))
+  forwardOpen.insert(source, epsilon * h.get(graph, source, goal))
+  backwardOpen.insert(goal, epsilon * h.get(graph, goal, source))
 
   let nodesGenerated = 2
   let nodesExpanded = 0
 
   while (forwardOpen.size > 0 && backwardOpen.size > 0) {
     // Forward expansion
-    const fwdVertex = forwardOpen.pop() as GridVertex
+    const fwdVertex = forwardOpen.pop() as S
     const fwdCost = forwardG.get(fwdVertex) as number
 
     nodesExpanded++
@@ -84,8 +84,8 @@ export const bidirectionalAStar: Algorithm = function * (
       return
     }
 
-    for (const nextVertex of fwdVertex.neighbors) {
-      const tentativeCost = fwdCost + g.get(graph, fwdVertex.x, fwdVertex.y, nextVertex.x, nextVertex.y)
+    for (const nextVertex of graph.successors(fwdVertex)) {
+      const tentativeCost = fwdCost + g.get(graph, fwdVertex, nextVertex)
 
       if (!forwardG.has(nextVertex) || (forwardG.get(nextVertex) as number) > tentativeCost) {
         forwardG.set(nextVertex, tentativeCost)
@@ -93,7 +93,7 @@ export const bidirectionalAStar: Algorithm = function * (
 
         forwardOpen.insertOrUpdate(
           nextVertex,
-          tentativeCost + epsilon * h.get(graph, nextVertex.x, nextVertex.y, goal.x, goal.y)
+          tentativeCost + epsilon * h.get(graph, nextVertex, goal)
         )
 
         nodesGenerated++
@@ -101,7 +101,7 @@ export const bidirectionalAStar: Algorithm = function * (
     }
 
     // Backward expansion
-    const bwdVertex = backwardOpen.pop() as GridVertex
+    const bwdVertex = backwardOpen.pop() as S
     const bwdCost = backwardG.get(bwdVertex) as number
 
     nodesExpanded++
@@ -120,8 +120,8 @@ export const bidirectionalAStar: Algorithm = function * (
       return
     }
 
-    for (const nextVertex of bwdVertex.neighbors) {
-      const tentativeCost = bwdCost + g.get(graph, bwdVertex.x, bwdVertex.y, nextVertex.x, nextVertex.y)
+    for (const nextVertex of graph.successors(bwdVertex)) {
+      const tentativeCost = bwdCost + g.get(graph, bwdVertex, nextVertex)
 
       if (!backwardG.has(nextVertex) || (backwardG.get(nextVertex) as number) > tentativeCost) {
         backwardG.set(nextVertex, tentativeCost)
@@ -129,7 +129,7 @@ export const bidirectionalAStar: Algorithm = function * (
 
         backwardOpen.insertOrUpdate(
           nextVertex,
-          tentativeCost + epsilon * h.get(graph, nextVertex.x, nextVertex.y, source.x, source.y)
+          tentativeCost + epsilon * h.get(graph, nextVertex, source)
         )
 
         nodesGenerated++

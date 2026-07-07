@@ -1,14 +1,23 @@
+import type { Point } from '../graph/GridGraph'
+
 import fs from 'node:fs'
 import path from 'node:path'
 
-export interface ScenDef {
+export interface ScenDef extends GenericScenDef<Point> {
   bucket: number
   map: string
   mapSize: { x: number, y: number }
-  start: { x: number, y: number }
-  goal: { x: number, y: number }
+  start: Point
+  goal: Point
   optimalLength: number
   fileName: string
+  index: number
+}
+
+export interface GenericScenDef<S> {
+  start: S
+  goal: S
+  fileName: string,
   index: number
 }
 
@@ -29,8 +38,8 @@ export function parseScenLine (source: string, fileName: string, lineIndex: numb
     bucket: Number(bucket),
     map: String(map),
     mapSize: { x: Number(mapWidth), y: Number(mapHeight) },
-    start: { x: Number(startX), y: Number(startY) },
-    goal: { x: Number(goalX), y: Number(goalY) },
+    start: [Number(startX), Number(startY)],
+    goal: [Number(goalX), Number(goalY)],
     optimalLength: Number(optimalLength),
     fileName,
     index: lineIndex
