@@ -246,3 +246,46 @@ export function clamp (value: number, min: number, max: number): number {
 export function inverseLerp (a: number, b: number, t: number): number {
   return (t - a) / (b - a)
 }
+
+export function binomialCoefficient (n: number, k: number): number {
+  if (k > n) return 0
+  if (k === 0 || k === n) return 1
+
+  let result = 1
+  for (let i = 1; i <= k; i++) {
+    result *= (n - k + i) / i
+  }
+  return result
+}
+
+/**
+ * Shuffle an array in-place
+ */
+export function shuffle<T> (array: T[], rand = Math.random): T[] {
+  for (let i = 0; i < array.length; ++i) {
+    const j = Math.floor(rand() * array.length)
+    ;[array[i], array[j]] = [array[j]!, array[i]!]
+  }
+  return array
+}
+
+/**
+ * Shuffle an array subset in-place
+ */
+export function shuffleSubset<T> (array: T[], indices: number[], rand = Math.random): T[] {
+  for (const i of indices) {
+    const j = indices[Math.floor(rand() * indices.length)]!
+    ;[array[i], array[j]] = [array[j]!, array[i]!]
+  }
+  return array
+}
+
+
+export function toGrid<T> (array: T[], width: number): T[][] {
+  if (array.length % width !== 0) {
+    throw new Error('Array length must be a multiple of the width.')
+  }
+
+  const height = array.length / width
+  return Array.from({ length: height }, (_, y) => array.slice(y * width, (y + 1) * width))
+}

@@ -29,3 +29,6 @@ export function countSetBits (x: number): number {
   }
   return count
 }
+
+export type ClassOf<G> = new (...args: any[]) => G
+export type TypeOfArg = Function | { [Symbol.hasInstance]: Function }

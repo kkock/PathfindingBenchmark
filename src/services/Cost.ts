@@ -1,7 +1,7 @@
 import type { SearchDomain } from '../graph/Graph'
-import { Point, type GridGraph, type GridVertex } from '../graph/GridGraph'
+import { GridGraph, Point, type GridVertex } from '../graph/GridGraph'
 import { VacuumState, VacuumWorld } from '../graph/VacuumWorldGraph'
-import { countSetBits, euclideanDistance } from './misc'
+import { type ClassOf, countSetBits, euclideanDistance } from './misc'
 
 type CostCallback<
   S,
@@ -14,10 +14,12 @@ export class Cost<
 > {
   public readonly get: CostCallback<S, G>
   public readonly name: string
+  public readonly Domain: ClassOf<G>
 
-  constructor (cb: CostCallback<S, G>, name: string) {
+  constructor (cb: CostCallback<S, G>, name: string, Domain: ClassOf<G>) {
     this.get = cb
     this.name = name
+    this.Domain = Domain
   }
 }
 
@@ -27,7 +29,7 @@ export class Cost<
  * This benchmark calculates valid neighbors ahead of time so using euclidean
  * distance is satisfactory here.
  */
-export const euclideanCost = new Cost<Point, GridGraph>((_, ...args) => euclideanDistance(...args), 'euclidean')
+export const euclideanCost = new Cost<Point>((_, ...args) => euclideanDistance(...args), 'euclidean', GridGraph)
 
 /**
  * Guards cost takes the amount of guards that see a tile (encoded as a
@@ -53,14 +55,14 @@ export const guardsCost = new Cost<Point, GridGraph>((graph: GridGraph, [x1, y1]
       ]
 
   return euclideanDistance([x1, y1], [x2, y2]) * (vertices as GridVertex[]).reduce((acc, vertex, _, a) => acc + (2 ** parseInt(vertex.value, 36)) / a.length, 0)
-}, 'euclidean-guards')
+}, 'euclidean-guards', GridGraph)
 
 export function getWeightedCost<S> (weight: number, cost: Cost<S>): Cost<S> {
   const cb: CostCallback<S> = (...args) => weight * cost.get(...args)
-  return new Cost(cb, `${cost.name}(${weight})`)
+  return new Cost(cb, `${cost.name}(${weight})`, cost.Domain)
 }
 
-export const unitCost = new Cost<any>(() => 1, 'unit')
+export const unitCost = new Cost<any>(() => 1, 'unit', Object as any)
 
 export const heavyVacuumCost = new Cost<VacuumState, VacuumWorld>((graph, state1, state2) => {
   const maxDirtPileCount = graph.dirtPositions.length
@@ -68,6 +70,6 @@ export const heavyVacuumCost = new Cost<VacuumState, VacuumWorld>((graph, state1
   const robotWeight = maxDirtPileCount - setBits
 
   return 1 + robotWeight
-}, 'heavy-vacuum')
+}, 'vacuum-heavy', VacuumWorld)
 
 export class ApproximateCost<S> extends Cost<S> {}

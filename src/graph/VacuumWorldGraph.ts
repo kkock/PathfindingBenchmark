@@ -106,7 +106,6 @@ export class VacuumWorld implements SearchDomain<VacuumState> {
     bestDist[0] = 0
 
     for (let iter = 0; iter < n; iter++) {
-      // Find the unvisited vertex with the smallest connection cost.
       let u = -1
       let minDist = Infinity
 
@@ -121,7 +120,6 @@ export class VacuumWorld implements SearchDomain<VacuumState> {
       inTree[u] = true
       const posU = positions[u]!
 
-      // Update distances to remaining vertices.
       for (let v = 0; v < n; v++) {
         if (inTree[v]!) continue
         const d = manhattanDistance(posU, positions[v]!)
@@ -134,7 +132,8 @@ export class VacuumWorld implements SearchDomain<VacuumState> {
 
     const mst: number[] = []
     for (let v = 1; v < n; v++) {
-      mst.push(bestDist[v]!)
+      // Add 1 extra action for cleaning the target dirt pile.
+      mst.push(bestDist[v]! + 1)
     }
     return mst
   }

@@ -1,7 +1,7 @@
 import type { SearchDomain } from '../graph/Graph'
-import type { GridGraph, Point } from '../graph/GridGraph'
+import { GridGraph, Point } from '../graph/GridGraph'
 import { VacuumState, VacuumWorld } from '../graph/VacuumWorldGraph'
-import { chebyshevDistance, countSetBits, euclideanDistance, manhattanDistance } from './misc'
+import { type ClassOf, chebyshevDistance, countSetBits, euclideanDistance, manhattanDistance } from './misc'
 
 type ActionEstimateCallback<
   S,
@@ -14,10 +14,12 @@ export class ActionEstimate<
 > {
   private readonly cb: ActionEstimateCallback<S, G>
   public readonly name: string
+  public readonly Domain: ClassOf<G>
 
-  constructor (cb: ActionEstimateCallback<S, G>, name: string) {
+  constructor (cb: ActionEstimateCallback<S, G>, name: string, Domain: ClassOf<G>) {
     this.cb = cb
     this.name = name
+    this.Domain = Domain
   }
 
   get (graph: G, state1: S, state2: S) {
@@ -25,13 +27,13 @@ export class ActionEstimate<
   }
 }
 
-export const chebyshevActionEstimate = new ActionEstimate<Point>((_, ...args) => chebyshevDistance(...args), 'chebyshev')
-export const manhattanActionEstimate = new ActionEstimate<Point>((_, ...args) => manhattanDistance(...args), 'manhattan')
-export const euclideanActionEstimate = new ActionEstimate<Point>((_, ...args) => euclideanDistance(...args), 'euclidean')
+export const chebyshevActionEstimate = new ActionEstimate<Point>((_, ...args) => chebyshevDistance(...args), 'chebyshev', GridGraph)
+export const manhattanActionEstimate = new ActionEstimate<Point>((_, ...args) => manhattanDistance(...args), 'manhattan', GridGraph)
+export const euclideanActionEstimate = new ActionEstimate<Point>((_, ...args) => euclideanDistance(...args), 'euclidean', GridGraph)
 
 export function getWeightedActionEstimate<S> (weight: number, actionEstimate: ActionEstimate<S>): ActionEstimate<S> {
   const cb: ActionEstimateCallback<S> = (...args) => weight * actionEstimate.get(...args)
-  return new ActionEstimate(cb, `${actionEstimate.name}(${weight})`)
+  return new ActionEstimate(cb, `${actionEstimate.name}(${weight})`, actionEstimate.Domain)
 }
 
 /**
@@ -66,6 +68,6 @@ export const vacuumActionEstimate = new ActionEstimate<VacuumState, VacuumWorld>
   const remainingCost = this.get(graph, nextState, _)
 
   return (bestPileDist + 1) * robotWeight + remainingCost
-}, 'vacuum')
+}, 'vacuum', VacuumWorld)
 
 export class InadmissibleActionEstimate<S> extends ActionEstimate<S> {}
