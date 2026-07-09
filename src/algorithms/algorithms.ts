@@ -9,6 +9,7 @@ import { explicitEstimationSearch } from './ExplicitEstimationSearch'
 import { bidirectionalAStar } from './BidirectionalAStar'
 import { anytimeBidirectionalAStar } from './AnytimeBidirectionalAStar'
 import { anytimeRepairingAStar } from './AnytimeRepairingAStar'
+import { anytimeNonparametricAStar } from './AnytimeNonparametricAStar'
 
 export default [
   aStar,
@@ -21,7 +22,8 @@ export default [
   explicitEstimationSearch,
   bidirectionalAStar,
   anytimeBidirectionalAStar,
-  anytimeRepairingAStar
+  anytimeRepairingAStar,
+  anytimeNonparametricAStar
 ]
 
 export { aStar } from './AStar'
@@ -35,3 +37,4 @@ export { explicitEstimationSearch } from './ExplicitEstimationSearch'
 export { bidirectionalAStar } from './BidirectionalAStar'
 export { anytimeBidirectionalAStar } from './AnytimeBidirectionalAStar'
 export { anytimeRepairingAStar } from './AnytimeRepairingAStar'
+export { anytimeNonparametricAStar } from './AnytimeNonparametricAStar'

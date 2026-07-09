@@ -4,7 +4,9 @@
   "outPath": "./logs/result.log",
   "type": "guards",
   "algorithms": [
-    "explicitEstimationSearch"
+    "anytimeRepairingAStar",
+    "bidirectionalAStar",
+    "anytimeNonparametricAStar"
   ],
   "services": {
     "Heuristic": [

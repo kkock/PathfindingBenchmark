@@ -55,6 +55,13 @@ class FocalBeamQueue<T> {
   get focalSize (): number { return this.focalList.size }
 }
 
+/**
+ * @todo consider renaming `focal` to `commit` or `active`, and selecting an
+ * apprioriate alternate name for the algorithm.
+ * 
+ * Also note that it's similar to MSC-KWA*, except this is a non-layered beam
+ * search that dynamically adjusts the size of its commit list.
+ */
 export const focalBeamAStar: Algorithm = function * <S> (
   graph: SearchDomain<S>,
   services: InstanceRegistry<SearchService<S>>,

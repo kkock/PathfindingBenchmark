@@ -335,6 +335,10 @@ export class EESQueue<T> {
 
 /**
  * @todo finish implementation
+ * 
+ * This implementation sort of works but performs nowhere near as well as the
+ * paper found, so I expect I have made some rather glaring mistakes in this
+ * implementation.
  */
 export const explicitEstimationSearch: Algorithm = function * <S> (
   graph: SearchDomain<S>,
