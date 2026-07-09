@@ -25,7 +25,7 @@ export const anytimeNonparametricAStar: Algorithm = function * <S> (
   const cameFrom = new Map<S, S>()
   const openSet = new KeyedBinaryHeap<S>()
   gScores.set(source, 0)
-  openSet.insert(source, e(source))
+  openSet.insert(source, -e(source))
 
   let nodesGenerated = 1
   let nodesExpanded = 0
@@ -40,6 +40,7 @@ export const anytimeNonparametricAStar: Algorithm = function * <S> (
       //if (currentE < bestE) bestE = currentE
 
       if (vertex === goal) {
+        bestCost = currentCost
         yield {
           path: reconstructPath(cameFrom, goal),
           searchMetrics: { nodesExpanded, nodesGenerated }
@@ -52,8 +53,8 @@ export const anytimeNonparametricAStar: Algorithm = function * <S> (
           if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
             gScores.set(nextVertex, tentativeCost)
             cameFrom.set(nextVertex, vertex)
-            if (tentativeCost +  h.get(graph, nextVertex, goal) < bestCost) {
-              openSet.insertOrUpdate(nextVertex, e(nextVertex))
+            if (tentativeCost + h.get(graph, nextVertex, goal) < bestCost) {
+              openSet.insertOrUpdate(nextVertex, -e(nextVertex))
               nodesGenerated++
             }
           }
@@ -65,46 +66,10 @@ export const anytimeNonparametricAStar: Algorithm = function * <S> (
       if (gScores.get(vertex)! + h.get(graph, vertex, goal) >= bestCost) {
         openSet.remove(vertex)
       } else {
-        openSet.update(vertex, e(vertex))
+        openSet.update(vertex, -e(vertex))
       }
     }
   }
-  /*const h = services.get(Heuristic)
-  const g = services.get(Cost)
-  const gScores = new Map<S, number>()
-  //const epsilon: number = opts['epsilon'] ?? 1
-
-  const cameFrom = new Map<S, S>()
-  const openSet = new KeyedBinaryHeap<S>()
-  openSet.insert(source, epsilon * h.get(graph, source, goal))
-  gScores.set(source, 0)
-
-  let nodesGenerated = 1
-  let nodesExpanded = 0
-
-  while (openSet.size > 0) {
-    const vertex = openSet.pop() as S
-    const currentCost = gScores.get(vertex) as number
-    nodesExpanded++
-
-    if (vertex === goal) {
-      yield {
-        path: reconstructPath(cameFrom, goal),
-        searchMetrics: { nodesExpanded, nodesGenerated }
-      }
-    } else {
-      for (const nextVertex of graph.successors(vertex)) {
-        const tentativeCost = currentCost + g.get(graph, vertex, nextVertex)
-        if (gScores.has(goal) && tentativeCost >= (gScores.get(goal) as number)) continue
-        if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
-          gScores.set(nextVertex, tentativeCost)
-          cameFrom.set(nextVertex, vertex)
-          openSet.insertOrUpdate(nextVertex, tentativeCost + epsilon * h.get(graph, nextVertex, goal))
-          nodesGenerated++
-        }
-      }
-    }
-  }*/
 }
 
 anytimeNonparametricAStar.availableOpts = new Set()
