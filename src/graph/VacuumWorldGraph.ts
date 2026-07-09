@@ -7,7 +7,7 @@ export interface VacuumState {
   readonly remaining: number // Bit mask
 }
 
-export class VacuumWorld implements SearchDomain<VacuumState> {
+export class VacuumWorld extends Object implements SearchDomain<VacuumState>  {
   width: number
   height: number
   passable: boolean[]
@@ -34,6 +34,7 @@ export class VacuumWorld implements SearchDomain<VacuumState> {
   }
 
   constructor (width: number, height: number) {
+    super()
     this.width = width
     this.height = height
     this.passable = new Array(width * height).fill(true)

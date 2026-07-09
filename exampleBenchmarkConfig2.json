@@ -1,5 +1,5 @@
 {
-  "mapPath": "../Vacuum/10/0.map",
+  "mapPath": "../Vacuum/20/0.map",
   "outPath": "./logs/result.log",
   "type": "vacuum",
   "algorithms": [
@@ -8,10 +8,10 @@
   ],
   "services": {
     "Heuristic": [
-      "vacuum-heavy(1)"
+      "vacuum(1)"
     ],
     "Cost": [
-      "vacuum-heavy(1)"
+      "unit(1)"
     ],
     "ActionEstimate": [
       "vacuum(1)"

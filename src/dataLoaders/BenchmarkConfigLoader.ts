@@ -6,7 +6,7 @@ import { VacuumWorld } from '../graph/VacuumWorldGraph'
 
 import algorithms from '../algorithms/algorithms'
 import { Heuristic, InadmissibleHeuristic, euclideanHeuristic, getWeightedHeuristic, heavyVacuumHeuristic, vacuumHeuristic } from '../services/Heuristic'
-import { ApproximateCost, Cost, euclideanCost, getWeightedCost, guardsCost, heavyVacuumCost } from '../services/Cost'
+import { ApproximateCost, Cost, euclideanCost, getWeightedCost, guardsCost, heavyVacuumCost, unitCost } from '../services/Cost'
 import { ActionEstimate, chebyshevActionEstimate, euclideanActionEstimate, getWeightedActionEstimate, InadmissibleActionEstimate, manhattanActionEstimate, vacuumActionEstimate } from '../services/ActionEstimate'
 import { generateCombinations } from '../utils'
 import { readScenFiles } from './ScenLoader'
@@ -87,6 +87,7 @@ export function parseBenchmarkConfig<S> (source: string): BenchmarkConfig<S> {
   const _manhattanActionEstimate = manhattanActionEstimate  as unknown as ActionEstimate<S>
   const _euclideanActionEstimate = euclideanActionEstimate  as unknown as ActionEstimate<S>
   const _vacuumActionEstimate = vacuumActionEstimate as unknown as ActionEstimate<S>
+  const _unitCost = unitCost as unknown as Cost<S>
   const _heavyVacuumCost = heavyVacuumCost as unknown as Cost<S>
   const _vacuumHeuristic = vacuumHeuristic as unknown as Heuristic<S>
   const _heavyVacuumHeuristic = heavyVacuumHeuristic as unknown as Heuristic<S>
@@ -155,12 +156,18 @@ export function parseBenchmarkConfig<S> (source: string): BenchmarkConfig<S> {
             const match = /^euclidean-guards\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(Cost)!.push(getWeightedCost(weight, _guardsCost))
-          } else if (serviceValue === 'heavy-vacuum') {
+          } else if (serviceValue === 'vacuum-heavy') {
             services.get(Cost)!.push(_heavyVacuumCost)
           } else if (/^vacuum-heavy\([\d.]+\)$/.test(serviceValue)) {
             const match = /^vacuum-heavy\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(Cost)!.push(getWeightedCost(weight, _heavyVacuumCost))
+          } else if (serviceValue === 'unit') {
+            services.get(Cost)!.push(_unitCost)
+          } else if (/^unit\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^unit\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
+            const weight = Number(match[1])
+            services.get(Cost)!.push(getWeightedCost(weight, _unitCost))
           } else {
             throw new RangeError(`Unknown cost '${serviceValue}'`)
           }
@@ -185,6 +192,12 @@ export function parseBenchmarkConfig<S> (source: string): BenchmarkConfig<S> {
             const match = /^heavy-vacuum\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
             const weight = Number(match[1])
             services.get(ApproximateCost)!.push(getWeightedCost(weight, _heavyVacuumCost))
+          } else if (serviceValue === 'unit') {
+            services.get(ApproximateCost)!.push(_unitCost)
+          } else if (/^unit\([\d.]+\)$/.test(serviceValue)) {
+            const match = /^unit\(([\d.]+)\)$/.exec(serviceValue) as RegExpExecArray
+            const weight = Number(match[1])
+            services.get(ApproximateCost)!.push(getWeightedCost(weight, _unitCost))
           } else {
             throw new RangeError(`Unknown cost '${serviceValue}'`)
           }
@@ -295,13 +308,13 @@ export function runConfig (configPath: string): void {
       for (const services of serviceSets) {
         const servicesValues = Array.from(services.values())
         if (config.type === 'vacuum') {
-          if (servicesValues.some((v) => VacuumWorld !== v.Domain && !VacuumWorld.isPrototypeOf(v.Domain))) continue
+          if (servicesValues.some((v) => VacuumWorld !== v.Domain && !v.Domain.isPrototypeOf(VacuumWorld))) continue
           const mapFiles = getMapFiles(config.mapPath)
           const suites = prepareVacuumSuites(mapFiles)
           const result = runSuites(suites, [algorithm], services as InstanceRegistry<SearchService<any>>, opts)
           fs.appendFileSync(config.outPath, result.map(result => JSON.stringify(result)).join('\n') + '\n')
         } else {
-          if (servicesValues.some((v) => GridGraph !== v.Domain && !GridGraph.isPrototypeOf(v.Domain))) continue
+          if (servicesValues.some((v) => GridGraph !== v.Domain && !v.Domain.isPrototypeOf(GridGraph))) continue
           const scenFiles = readScenFiles(config.scenPath)
           const mapFiles = getMapFiles(config.mapPath)
           for (const [scenName, scenDefs] of scenFiles) {

@@ -39,7 +39,7 @@ export const vacuumHeuristic = new Heuristic<VacuumState, VacuumWorld>((graph, s
   }
 
   const mst = graph.getMst(points)
-  return mst.reduce((a, b) => a + b)
+  return mst.reduce((a, b) => a + b, 0)
 }, 'vacuum', VacuumWorld)
 
 export const heavyVacuumHeuristic = new Heuristic<VacuumState, VacuumWorld>((graph, state1, _) => {

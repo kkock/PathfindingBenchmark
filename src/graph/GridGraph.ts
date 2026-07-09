@@ -17,7 +17,7 @@ export class GridVertex {
   }
 }
 
-export class GridGraph implements SearchDomain<Point> {
+export class GridGraph extends Object implements SearchDomain<Point> {
   private readonly vertices = new Map<string, GridVertex>()
 
   addVertex (key: string, vertex: GridVertex): void {

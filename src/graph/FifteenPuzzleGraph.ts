@@ -1,6 +1,6 @@
 import type { SearchDomain } from "./Graph"
 
-export const fifteenPuzzleGraph: SearchDomain<string> = {
+export class FifteenPuzzleGraph extends Object implements SearchDomain<string> {
   successors (state: string): Iterable<string> {
     const stateArray = state.split(',').map(Number)
     const emptyIndex = stateArray.indexOf(0)
@@ -27,7 +27,7 @@ export const fifteenPuzzleGraph: SearchDomain<string> = {
     if (emptyIndex <= 0xB) successors.push(getNext(emptyIndex + 4))
 
     return successors
-  },
+  }
 
-  normalize: (state: string) => state
+  normalize (state: string) { return state }
 }
