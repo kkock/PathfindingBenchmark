@@ -80,12 +80,15 @@ export function vacuumWorldFromMap (fileName: string, map: string[][]): {
     for (let x = 0; x < map[y]!.length; ++x) {
       const char = map[y]![x]!
       switch (char) {
-        case '#':
+        case '#': // Wall
           domain.passable[domain.getIndex(x, y)] = false
           break
 
         case '@': // Start pos
           startPos = domain.getIndex(x, y)
+          break
+
+        case '.': // Empty space
           break
         
         default: {
@@ -143,4 +146,33 @@ export function getMapFiles (mapPath: string): Map<string, string> {
   }
 
   return result
+}
+
+export function writeMapFile (path: string, map: string[][], asPromise: true): Promise<void>
+export function writeMapFile (path: string, map: string[][], asPromise?: false): void
+export function writeMapFile (
+  path: string,
+  map: string[][],
+  promise?: boolean
+): Promise<void> | void {
+  const height = map.length
+  if (height === 0) throw new Error(`Maps must have a height of at least 1`)
+  const width = map[0]!.length
+  if (width === 0) throw new Error(`Maps must have a width of at least 1`)
+  if (map.some(row => row.length !== width)) throw new Error(`Maps must be rectangular`)
+  if (map.some(row => row.some(cell => cell.length !== 1))) throw new Error(`Map cells must be a single char`)
+
+  const data =
+    'type octile\n' +
+    `height ${height}\n` +
+    `width ${width}\n` +
+    `map\n` +
+    map.map(row => row.join('')).join('\n') +
+    '\n'
+
+  if (promise != null && promise) {
+    return fs.promises.writeFile(path, data)
+  } else {
+    return fs.writeFileSync(path, data)
+  }
 }

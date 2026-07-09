@@ -4,27 +4,27 @@ import { alignDecimals, clamp, getMedianElement, inverseLerp, lerp, toXterm216 }
 import type { ProcessedSingleBenchmarkResult, SerializedBenchmarkResult } from './Suite'
 import chalk, { ChalkInstance } from 'chalk'
 
-function groupBenchmarkResultsByScenario (source: string): Map<string, SerializedBenchmarkResult[]> {
-  const lines = source.trim().split('\n').map(str => JSON.parse(str.trim()) as SerializedBenchmarkResult)
-  const resultsByScenario = new Map<string, SerializedBenchmarkResult[]>()
+function groupBenchmarkResultsByScenario<S> (source: string): Map<string, SerializedBenchmarkResult<S>[]> {
+  const lines = source.trim().split('\n').map(str => JSON.parse(str.trim()) as SerializedBenchmarkResult<S>)
+  const resultsByScenario = new Map<string, SerializedBenchmarkResult<S>[]>()
   for (const line of lines) {
     const key = line.result.scenario
     if (!resultsByScenario.has(key)) resultsByScenario.set(key, [])
-    ;(resultsByScenario.get(key) as SerializedBenchmarkResult[]).push(line)
+    ;(resultsByScenario.get(key) as SerializedBenchmarkResult<S>[]).push(line)
   }
   return resultsByScenario
 }
 
-export interface AveragedBenchmarkResult {
+export interface AveragedBenchmarkResult<S> {
   algorithm: string
   services: { [key: string]: string }
   opts: { [key: string]: any }
-  result: ProcessedSingleBenchmarkResult
+  result: ProcessedSingleBenchmarkResult<S>
 }
 
-function selectMedian (line: SerializedBenchmarkResult): AveragedBenchmarkResult {
+function selectMedian<S> (line: SerializedBenchmarkResult<S>): AveragedBenchmarkResult<S> {
   const sortAscending: (a: number, b: number) => number = (a, b) => a - b
-  const result: ProcessedSingleBenchmarkResult = {
+  const result: ProcessedSingleBenchmarkResult<S> = {
     results: line.result.results.map(entry => {
       return {
         cost: getMedianElement(entry.cost.toSorted(sortAscending)),

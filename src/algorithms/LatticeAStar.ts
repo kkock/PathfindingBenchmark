@@ -65,10 +65,11 @@ export const latticeAStar: Algorithm = function * <S> (
   goal: S,
   opts: { [key: string]: any } = {}
 ): Generator<AlgorithmResult<S>, undefined, void> {
-  const h = services.get(InadmissibleHeuristic)
-  const g = services.get(Cost)
+  const h = services.get(InadmissibleHeuristic) as InadmissibleHeuristic<S>
+  const g = services.get(Cost) as Cost<S>
   const openSet = new BinaryHeap<SearchNode<S>>()
   const nodes = new Map<S, SearchNode<S>>()
+  
   let bestSolutionCost = Infinity
 
   function addToOpenSet (node: SearchNode<S>): void {

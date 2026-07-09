@@ -5,7 +5,7 @@ import type { SearchDomain } from '../graph/Graph'
 import { Cost } from '../services/Cost'
 import { Heuristic } from '../services/Heuristic'
 import { reconstructPath } from '../services/misc'
-import { quickSelect } from '../services/QuickSelect'
+import { quickSelect } from '../QuickSelect'
 
 type BeamNode<S> = {
   vertex: S

@@ -16,11 +16,17 @@ export type ExtendedParseArgsConfig = ParseArgsConfig & {
   }
 }
 
-export function formatHelp ({ options = {}, positional = {}, allowPositionals = true }): string {
+export function formatHelp ({
+  options = {},
+  positional = {},
+  allowPositionals = true,
+  cmd = Array<string>()
+}): string {
   const lines = []
 
   lines.push(chalk.bold('Usage:'))
-  lines.push(`  ${Object.keys(pkg.bin)[0] as string} [options]\n`)
+  const commands = cmd.length > 0 ? cmd.join(' ') + ' ' : ''
+  lines.push(`  ${Object.keys(pkg.bin)[0] as string} ${commands}[options]\n`)
 
   const optionEntries: Array<[string, ExtendedOptionDescriptor]> = Object.entries(options)
 
@@ -90,84 +96,6 @@ export function generateCombinations<K, V> (input: Record<string, readonly V[]> 
 export function getMedianElement<T> (array: T[]): T {
   return array[Math.floor(array.length / 2)] as T
 }
-
-/* export function alignDecimals (values: Record<string, number | null | undefined>): Record<string, string> {
-  const entries = Object.entries(values)
-
-  // First pass: convert values to strings and collect widths
-  const converted = entries.map(([key, value]) => {
-    if (value == null || Number.isNaN(value)) {
-      return {
-        key,
-        text: '-',
-        integerLength: 1,
-        fractionalLength: 0,
-        hasDecimal: false
-      }
-    }
-
-    const text = String(value)
-    const dotIndex = text.indexOf('.')
-
-    if (dotIndex === -1) {
-      return {
-        key,
-        text,
-        integerLength: text.length,
-        fractionalLength: 0,
-        hasDecimal: false
-      }
-    }
-
-    return {
-      key,
-      text,
-      integerLength: dotIndex,
-      fractionalLength: text.length - dotIndex - 1,
-      hasDecimal: true
-    }
-  })
-
-  const maxIntegerLength = Math.max(
-    ...converted.map(v => v.integerLength)
-  )
-
-  const maxFractionalLength = Math.max(
-    ...converted.map(v => v.fractionalLength)
-  )
-
-  // Second pass: pad each string
-  const result: Record<string, string> = {}
-
-  for (const value of converted) {
-    const dotIndex = value.text.indexOf('.')
-
-    let integerLength: number
-    let fractionalLength: number
-
-    if (dotIndex === -1) {
-      integerLength = value.text.length
-      fractionalLength = 0
-    } else {
-      integerLength = dotIndex
-      fractionalLength = value.text.length - dotIndex - 1
-    }
-
-    const leftPadding = ' '.repeat(
-      maxIntegerLength - integerLength
-    )
-
-    const rightPadding = ' '.repeat(
-      maxFractionalLength - fractionalLength
-    )
-
-    result[value.key] =
-            leftPadding + value.text + rightPadding
-  }
-
-  return result
-}
-*/
 
 export function alignDecimals<K extends keyof any> (
   values: { [P in K]: number | null | undefined },
@@ -247,7 +175,7 @@ export function inverseLerp (a: number, b: number, t: number): number {
   return (t - a) / (b - a)
 }
 
-export function binomialCoefficient (n: number, k: number): number {
+/*export function binomialCoefficient (n: number, k: number): number {
   if (k > n) return 0
   if (k === 0 || k === n) return 1
 
@@ -256,7 +184,7 @@ export function binomialCoefficient (n: number, k: number): number {
     result *= (n - k + i) / i
   }
   return result
-}
+}*/
 
 /**
  * Shuffle an array in-place

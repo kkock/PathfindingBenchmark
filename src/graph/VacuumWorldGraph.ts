@@ -57,10 +57,10 @@ export class VacuumWorld implements SearchDomain<VacuumState> {
     for (const offset of this.cardinalOffsets) {
       const nextPosition = state.robotPosition + offset
       if (this.passable[nextPosition]!) {
-        result.push({
+        result.push(this.normalize({
           robotPosition: nextPosition,
           remaining: state.remaining
-        })
+        }))
       }
     }
 
@@ -71,10 +71,10 @@ export class VacuumWorld implements SearchDomain<VacuumState> {
 
     if (dirt != null && ((state.remaining >> dirt) & 1) !== 0) {
       const nextRemaining = state.remaining & ~(1 << dirt)
-      result.push({
+      result.push(this.normalize({
         robotPosition: nextRemaining > 0 ? state.robotPosition : -1,
         remaining: nextRemaining
-      })
+      }))
     }
 
     return result

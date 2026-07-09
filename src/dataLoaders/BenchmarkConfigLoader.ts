@@ -295,13 +295,13 @@ export function runConfig (configPath: string): void {
       for (const services of serviceSets) {
         const servicesValues = Array.from(services.values())
         if (config.type === 'vacuum') {
-          if (servicesValues.some((v) => !VacuumWorld.isPrototypeOf(v.Domain))) continue
+          if (servicesValues.some((v) => VacuumWorld !== v.Domain && !VacuumWorld.isPrototypeOf(v.Domain))) continue
           const mapFiles = getMapFiles(config.mapPath)
           const suites = prepareVacuumSuites(mapFiles)
           const result = runSuites(suites, [algorithm], services as InstanceRegistry<SearchService<any>>, opts)
           fs.appendFileSync(config.outPath, result.map(result => JSON.stringify(result)).join('\n') + '\n')
         } else {
-          if (servicesValues.some((v) => !GridGraph.isPrototypeOf(v.Domain))) continue
+          if (servicesValues.some((v) => GridGraph !== v.Domain && !GridGraph.isPrototypeOf(v.Domain))) continue
           const scenFiles = readScenFiles(config.scenPath)
           const mapFiles = getMapFiles(config.mapPath)
           for (const [scenName, scenDefs] of scenFiles) {

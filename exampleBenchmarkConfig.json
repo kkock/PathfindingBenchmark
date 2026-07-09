@@ -4,7 +4,7 @@
   "outPath": "./logs/result.log",
   "type": "guards",
   "algorithms": [
-    "explicitEstimationSearch2"
+    "explicitEstimationSearch"
   ],
   "services": {
     "Heuristic": [

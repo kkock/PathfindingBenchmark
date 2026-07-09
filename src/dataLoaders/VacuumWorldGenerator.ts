@@ -1,4 +1,6 @@
-import { binomialCoefficient, shuffle, shuffleSubset, toGrid } from "../utils"
+import path from "node:path"
+import { shuffle, shuffleSubset, toGrid } from "../utils"
+import { writeMapFile } from "./MapLoader"
 
 export type VacuumWorldGenOpts =
   & (
@@ -21,22 +23,25 @@ export type VacuumWorldGenOpts =
  * @param rand - a function returning a float in the range `[0, 1)`.
  * @returns a random number from `rand` weighted by the specified distribution.
  */
-function pickFromDistribution (
+function pickFromDistribution(
   probability: number,
   size: number,
   rand: () => number = Math.random
-) {
-  const r = rand()
-  let cumulative = 0
-  for (let k = 0; k <= size; k++) {
-    cumulative += 
-      binomialCoefficient(size, k) *
-      probability ** k *
-      (1 - probability) ** (size - k)
+): number {
+  if (probability <= 0) return 0
+  if (probability >= 1) return size
 
-    if (r < cumulative) return k
-  }
-  return size // Fallback
+  const mean = size * probability
+  const stddev = Math.sqrt(size * probability * (1 - probability))
+
+  // Box-Muller transform
+  let u1 = rand()
+  let u2 = rand()
+  while (u1 === 0) u1 = rand()
+
+  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
+  const sample = Math.round(mean + z * stddev)
+  return Math.max(0, Math.min(size, sample))
 }
 
 function isValid (cells: string[], width: number): boolean {
@@ -193,6 +198,7 @@ export function generateVacuumWorld (
   opts: VacuumWorldGenOpts
 ): string[][] {
   const size = width * height
+  if (isNaN(size)) throw new RangeError(`Invalid size '${width}x${height}'!`)
   let obstacleCount
   let dirtCount
 
@@ -257,7 +263,7 @@ export function generateVacuumWorld (
   const cells = [
     ...Array(obstacleCount).fill('#'),
     '@', // Robot
-    ...Array({ length: dirtCount }).map((_, i) => i.toString(36).toUpperCase()),
+    ...Array.from({ length: dirtCount }).map((_, i) => i.toString(36).toUpperCase()),
     ...Array(size - obstacleCount - dirtCount - 1).fill('.'),
   ]
 
@@ -280,5 +286,27 @@ export function generateVacuumWorld (
 
     // If not even a fallback can be generated, throw.
     if (iterations > hardCap) throw new Error('Iteration limit exceeded.')
+  }
+}
+
+export function writeNewVacuumWorlds (
+  width: number,
+  height: number,
+  opts: VacuumWorldGenOpts,
+  count: number,
+  directoryPath: string,
+  fileName: string = '%0.map'
+) {
+  for (let i = 0; i < count; ++i) {
+    const vacuumWorld = generateVacuumWorld(width, height, opts)
+    const writePath = path.join(directoryPath, fileName.replaceAll(/%(.)/g, (_, p1: string) => {
+      switch (p1) {
+        case '%': return p1
+        case '0': return `${i}`
+        default: return ''
+      }
+    }))
+
+    writeMapFile(writePath, vacuumWorld)
   }
 }

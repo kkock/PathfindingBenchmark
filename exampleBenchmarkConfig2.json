@@ -1,0 +1,25 @@
+{
+  "mapPath": "../Vacuum/10/0.map",
+  "outPath": "./logs/result.log",
+  "type": "vacuum",
+  "algorithms": [
+    "anytimeRepairingAStar",
+    "explicitEstimationSearch"
+  ],
+  "services": {
+    "Heuristic": [
+      "vacuum-heavy(1)"
+    ],
+    "Cost": [
+      "vacuum-heavy(1)"
+    ],
+    "ActionEstimate": [
+      "vacuum(1)"
+    ]
+  },
+  "opts": {
+    "epsilon": [
+      2
+    ]
+  }
+}

@@ -21,6 +21,7 @@ import { euclideanHeuristic, getWeightedHeuristic, Heuristic } from './services/
 import { Cost, euclideanCost, guardsCost } from './services/Cost'
 import { runConfig } from './dataLoaders/BenchmarkConfigLoader'
 import { loadAndDisplayResults } from './benchmark/Inspect'
+import { generateVacuumMaps } from './commands/GenerateVacuumMaps'
 
 const parseArgsConfig: ExtendedParseArgsConfig = {
   options: {
@@ -81,19 +82,29 @@ function getAlgorithms (): Algorithm[] {
   ]
 }
 
-function getOpts (isGuardsMap: boolean): { services: InstanceRegistry<SearchService>, opts: { [key: string]: any } } {
+function getOpts (isGuardsMap: boolean): { services: InstanceRegistry<SearchService<any>>, opts: { [key: string]: any } } {
   return {
     services: new Map([
       [Heuristic, getWeightedHeuristic(1, euclideanHeuristic)],
       [Cost, isGuardsMap ? guardsCost : euclideanCost]
-    ]) as InstanceRegistry<SearchService>,
+    ]) as InstanceRegistry<SearchService<any>>,
     opts: {
       epsilon: 1
     }
   }
 }
 
+function tryCommand (command: string | undefined): void {
+  switch (command) {
+    case 'generate-vacuum':
+      generateVacuumMaps()
+      process.exit()
+  }
+}
+
 function main (): void {
+  tryCommand(parseArgs({ allowPositionals: true, strict: false }).positionals[0])
+
   try {
     const { values, positionals } = parseArgs<ParseArgsConfig>(parseArgsConfig)
 
@@ -163,15 +174,19 @@ function runScenarios (
   mapFiles: Map<string, string>,
   isGuardsMap: boolean,
   algorithms: Algorithm[],
-  services: InstanceRegistry<SearchService>,
+  services: InstanceRegistry<SearchService<any>>,
   opts: { [key: string]: any } = {}
-): SerializedBenchmarkResult[] {
-  const results: SerializedBenchmarkResult[][] = []
+): SerializedBenchmarkResult<any>[] {
+  const results: SerializedBenchmarkResult<any>[][] = []
   for (const [scenName, scenDefs] of scenFiles) {
     const suites = prepareSuites(scenDefs, mapFiles, isGuardsMap)
     results.push(runSuites(suites, algorithms, services, opts))
   }
   return results.flat()
+}
+
+function generateVacuum () {
+
 }
 
 main()

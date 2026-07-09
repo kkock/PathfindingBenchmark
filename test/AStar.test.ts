@@ -1,8 +1,9 @@
 import { describe, expect, test } from '@jest/globals'
 import { diagonalNeighborPolicy, strTo2DArr } from './utils'
 import { gridGraphFromMap } from '../src/dataLoaders/MapLoader'
+
 import type { AlgorithmResult, SearchService } from '../src/Algorithm'
-import type { Vertex } from '../src/graph/Graph'
+import type { GridVertex, Point } from '../src/graph/GridGraph'
 import type { InstanceRegistry } from '../src/Registry'
 
 import { aStar } from '../src/algorithms/AStar'
@@ -18,13 +19,13 @@ describe('A* algorithm', () => {
     `)
 
     const graph = gridGraphFromMap(map, diagonalNeighborPolicy, { passable: new Set(['.']) })
-    const services = new Map<new (...args: any[]) => SearchService, SearchService>()
+    const services = new Map<new (...args: any[]) => SearchService<Point>, SearchService<Point>>()
     services.set(Cost, euclideanCost)
     services.set(Heuristic, euclideanHeuristic)
 
-    const startVertex = graph.getVertex('0,0') as Vertex
-    const endVertex = graph.getVertex('2,2') as Vertex
-    const resultGetter = (): AlgorithmResult[] => Array.from(aStar(graph, services as InstanceRegistry<SearchService>, startVertex, endVertex))
+    const startVertex = graph.getVertex('0,0') as GridVertex
+    const endVertex = graph.getVertex('2,2') as GridVertex
+    const resultGetter = (): AlgorithmResult<Point>[] => Array.from(aStar(graph, services as InstanceRegistry<SearchService<Point>>, startVertex.point, endVertex.point))
 
     expect(resultGetter).not.toThrow()
 
