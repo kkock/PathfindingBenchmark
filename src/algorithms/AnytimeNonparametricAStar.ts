@@ -16,8 +16,7 @@ export const anytimeNonparametricAStar: Algorithm = function * <S> (
 ): Generator<AlgorithmResult<S>, undefined, void> {
   const h = services.get(Heuristic)
   const g = services.get(Cost)
-  let bestCost = Infinity
-  //let bestE = Infinity
+  let bestCost = 1e100
   const gScores = new Map<S, number>()
   
   const e = (node: S) => (bestCost - gScores.get(node)!) / h.get(graph, node, goal)
@@ -34,10 +33,7 @@ export const anytimeNonparametricAStar: Algorithm = function * <S> (
     while (openSet.size > 0) {
       const vertex = openSet.pop() as S
       const currentCost = gScores.get(vertex) as number
-      //const currentE = e(vertex)
       nodesExpanded++
-
-      //if (currentE < bestE) bestE = currentE
 
       if (vertex === goal) {
         bestCost = currentCost
@@ -48,12 +44,13 @@ export const anytimeNonparametricAStar: Algorithm = function * <S> (
         break
       } else {
         for (const nextVertex of graph.successors(vertex)) {
+          const hScore = h.get(graph, nextVertex, goal)
           const tentativeCost = currentCost + g.get(graph, vertex, nextVertex)
-          if (gScores.has(goal) && tentativeCost >= (gScores.get(goal) as number)) continue
-          if (!gScores.has(nextVertex) || gScores.get(nextVertex) as number > tentativeCost) {
+          if (tentativeCost + hScore >= bestCost) continue
+          if (!gScores.has(nextVertex) || gScores.get(nextVertex)! > tentativeCost) {
             gScores.set(nextVertex, tentativeCost)
             cameFrom.set(nextVertex, vertex)
-            if (tentativeCost + h.get(graph, nextVertex, goal) < bestCost) {
+            if (tentativeCost + hScore < bestCost) {
               openSet.insertOrUpdate(nextVertex, -e(nextVertex))
               nodesGenerated++
             }

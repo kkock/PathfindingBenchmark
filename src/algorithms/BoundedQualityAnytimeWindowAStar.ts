@@ -7,7 +7,7 @@ import { Heuristic } from '../services/Heuristic'
 import { KeyedBinaryHeap } from '../ds/KeyedBinaryHeap'
 import { reconstructPath } from '../services/misc'
 
-export const anytimeWindowAStar: Algorithm = function * <S> (
+export const boundedQualityAnytimeWindowAStar: Algorithm = function * <S>(
   graph: SearchDomain<S>,
   services: InstanceRegistry<SearchService<S>>,
   source: S,
@@ -17,7 +17,8 @@ export const anytimeWindowAStar: Algorithm = function * <S> (
   const h = services.get(Heuristic)
   const g = services.get(Cost)
   const gScores = new Map<S, number>()
-  const epsilon: number = opts['epsilon'] ?? 1
+  let epsilon = opts['epsilon'] ?? 2
+  const delta = opts['delta'] ?? 1
 
   const level = new Map<S, number>()
   const parent = new Map<S, S>()
@@ -28,7 +29,7 @@ export const anytimeWindowAStar: Algorithm = function * <S> (
 
   gScores.set(source, 0)
   level.set(source, 0)
-  openSet.insert(source, epsilon * h.get(graph, source, goal))
+  openSet.insert(source, h.get(graph, source, goal))
 
   let windowSize = 0
   let bestCost = Infinity
@@ -38,21 +39,31 @@ export const anytimeWindowAStar: Algorithm = function * <S> (
 
   while (true) {
     let currentLevel = -1
+    let minSuspendF = suspendSet.size === 0 ? Infinity : suspendSet.peekPriority()!
     while (openSet.size > 0) {
       const fScore = openSet.peekPriority()!
       const vertex = openSet.pop()!
-      if (fScore >= bestCost) break
+
+      closedSet.add(vertex)
+
+      if (fScore >= bestCost || fScore >= minSuspendF * epsilon) {
+        closedSet.delete(vertex)
+        if (fScore < bestCost) openSet.insertOrUpdate(vertex, fScore)
+        break
+      }
 
       const vertexLevel = level.get(vertex)!
+
       if (vertexLevel <= currentLevel - windowSize) {
+        closedSet.delete(vertex)
         suspendSet.insertOrUpdate(vertex, fScore)
+        minSuspendF = suspendSet.peekPriority()!
         continue
       }
 
       if (vertexLevel > currentLevel) currentLevel = vertexLevel
-
-      closedSet.add(vertex)
       nodesExpanded++
+
       if (vertex === goal) {
         bestCost = gScores.get(vertex)!
         yield {
@@ -70,9 +81,11 @@ export const anytimeWindowAStar: Algorithm = function * <S> (
           parent.set(nextVertex, vertex)
           level.set(nextVertex, vertexLevel + 1)
 
-          openSet.insertOrUpdate(nextVertex, tentativeCost + epsilon * h.get(graph, nextVertex, goal))
-          closedSet.delete(nextVertex)
+          const nextF = tentativeCost + h.get(graph, nextVertex, goal)
+
+          openSet.insertOrUpdate(nextVertex, nextF)
           suspendSet.remove(nextVertex)
+          closedSet.delete(nextVertex)
 
           nodesGenerated++
         }
@@ -83,8 +96,9 @@ export const anytimeWindowAStar: Algorithm = function * <S> (
 
     ;[openSet, suspendSet] = [suspendSet, openSet]
     windowSize++
+    epsilon = Math.max(1, epsilon - delta)
   }
 }
 
-anytimeWindowAStar.availableOpts = new Set(['epsilon'])
-anytimeWindowAStar.availableServices = new Set([Cost, Heuristic])
+boundedQualityAnytimeWindowAStar.availableOpts = new Set(['epsilon', 'delta'])
+boundedQualityAnytimeWindowAStar.availableServices = new Set([Cost, Heuristic])

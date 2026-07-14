@@ -8,15 +8,15 @@ import { KeyedBinaryHeap } from '../ds/KeyedBinaryHeap'
 import { reconstructPath } from '../services/misc'
 import { KeyedIntervalHeap } from '../ds/KeyedIntervalHeap'
 
-class FocalBeamQueue<T> {
-  private readonly focalList = new KeyedIntervalHeap<T>()
-  private readonly openList = new KeyedBinaryHeap<T>()
+class RecoveringBeamQueue<T> {
+  private readonly commitList = new KeyedIntervalHeap<T>()
+  private readonly staleList = new KeyedBinaryHeap<T>()
   private _beamSize: number
   constructor (beamSize: number) { this._beamSize = beamSize }
 
   set beamSize (size: number) {
     this._beamSize = size
-    this.resetFocal()
+    this.resetCommit()
   }
 
   get beamSize (): number {
@@ -24,45 +24,38 @@ class FocalBeamQueue<T> {
   }
 
   insert (item: T, priority: number): void {
-    if (this.openList.has(item)) {
-      this.openList.remove(item)
+    if (this.staleList.has(item)) {
+      this.staleList.remove(item)
     }
-    this.focalList.insertOrUpdate(item, priority)
-    if (this.focalList.size > this._beamSize) {
-      const maxItem = this.focalList.max() as T
-      const maxPriority = this.focalList.maxPriority() as number
-      this.openList.insertOrUpdate(maxItem, maxPriority)
-      this.focalList.deleteMax()
+    this.commitList.insertOrUpdate(item, priority)
+    if (this.commitList.size > this._beamSize) {
+      const maxItem = this.commitList.max() as T
+      const maxPriority = this.commitList.maxPriority() as number
+      this.staleList.insertOrUpdate(maxItem, maxPriority)
+      this.commitList.deleteMax()
     }
   }
 
   pop (): T | undefined {
-    if (this.focalList.size === 0) this.resetFocal()
-    const item = this.focalList.min() as T
-    this.focalList.deleteMin()
+    if (this.commitList.size === 0) this.resetCommit()
+    const item = this.commitList.min() as T
+    this.commitList.deleteMin()
     return item
   }
 
-  private resetFocal (): void {
-    while (this.openList.size > 0 && this.focalList.size < this._beamSize) {
-      const priority = this.openList.peekPriority() as number
-      const item = this.openList.pop() as T
-      this.focalList.insertOrUpdate(item, priority)
+  private resetCommit (): void {
+    while (this.staleList.size > 0 && this.commitList.size < this._beamSize) {
+      const priority = this.staleList.peekPriority() as number
+      const item = this.staleList.pop() as T
+      this.commitList.insertOrUpdate(item, priority)
     }
   }
 
-  get size (): number { return this.focalList.size + this.openList.size }
-  get focalSize (): number { return this.focalList.size }
+  get size (): number { return this.commitList.size + this.staleList.size }
+  get commitSize (): number { return this.commitList.size }
 }
 
-/**
- * @todo consider renaming `focal` to `commit` or `active`, and selecting an
- * apprioriate alternate name for the algorithm.
- * 
- * Also note that it's similar to MSC-KWA*, except this is a non-layered beam
- * search that dynamically adjusts the size of its commit list.
- */
-export const focalBeamAStar: Algorithm = function * <S> (
+export const recoveringBeamAStar: Algorithm = function * <S> (
   graph: SearchDomain<S>,
   services: InstanceRegistry<SearchService<S>>,
   source: S,
@@ -78,7 +71,7 @@ export const focalBeamAStar: Algorithm = function * <S> (
   const dynamicBeamSize: number = opts['dynamicBeamSize'] ?? 20
 
   const cameFrom = new Map<S, S>()
-  const openSet = new FocalBeamQueue<S>(beamSize)
+  const openSet = new RecoveringBeamQueue<S>(beamSize)
   openSet.insert(source, epsilon * h.get(graph, source, goal))
   gScores.set(source, 0)
 
@@ -112,5 +105,5 @@ export const focalBeamAStar: Algorithm = function * <S> (
   }
 }
 
-focalBeamAStar.availableOpts = new Set(['beamSize', 'dynamicBeamSize', 'epsilon'])
-focalBeamAStar.availableServices = new Set([Cost, Heuristic])
+recoveringBeamAStar.availableOpts = new Set(['beamSize', 'dynamicBeamSize', 'epsilon'])
+recoveringBeamAStar.availableServices = new Set([Cost, Heuristic])

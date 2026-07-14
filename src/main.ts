@@ -16,7 +16,7 @@ import { getMapFiles } from './dataLoaders/MapLoader'
 import { readScenFiles } from './dataLoaders/ScenLoader'
 import { prepareSuites, runSuites } from './benchmark/Suite'
 
-import { anytimeAStar, anytimeDynamicallyWeightedAStar, aStar, focalBeamAStar } from './algorithms/algorithms'
+import { anytimeAStar, anytimeDynamicallyWeightedAStar, aStar, recoveringBeamAStar } from './algorithms/algorithms'
 import { euclideanHeuristic, getWeightedHeuristic, Heuristic } from './services/Heuristic'
 import { Cost, euclideanCost, guardsCost } from './services/Cost'
 import { runConfig } from './dataLoaders/BenchmarkConfigLoader'
@@ -77,7 +77,7 @@ function getAlgorithms (): Algorithm[] {
     aStar,
     anytimeAStar,
     anytimeDynamicallyWeightedAStar,
-    focalBeamAStar
+    recoveringBeamAStar
     // latticeAStar
   ]
 }
