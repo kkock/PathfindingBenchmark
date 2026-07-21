@@ -56,8 +56,10 @@ export function readScenFiles (scenPath: string): Map<string, ScenDef[]> {
   const scenPathIsDir = fs.statSync(scenPath).isDirectory()
   const result = new Map()
   if (scenPathIsDir) {
-    for (const file of fs.readdirSync(scenPath)) {
-      const fullPath = path.join(scenPath, file)
+    for (const file of fs.readdirSync(scenPath, { recursive: true })) {
+      const fullPath = path.join(scenPath, file as string)
+      if (fs.statSync(fullPath).isDirectory()) continue
+      if (!fullPath.endsWith('.scen')) continue
       const parsedScen = parseScen(fs.readFileSync(fullPath).toString(), fullPath)
       const { base } = path.parse(fullPath)
       result.set(base, parsedScen)

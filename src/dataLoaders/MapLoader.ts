@@ -135,8 +135,10 @@ export function getMapFiles (mapPath: string): Map<string, string> {
   const mapPathIsDir = fs.statSync(mapPath).isDirectory()
   const result = new Map()
   if (mapPathIsDir) {
-    for (const file of fs.readdirSync(mapPath)) {
-      const fullPath = path.join(mapPath, file)
+    for (const file of fs.readdirSync(mapPath, { recursive: true })) {
+      const fullPath = path.join(mapPath, file as string)
+      if (fs.statSync(fullPath).isDirectory()) continue
+      if (!fullPath.endsWith('.map')) continue
       const { base } = path.parse(fullPath)
       result.set(base, fullPath)
     }

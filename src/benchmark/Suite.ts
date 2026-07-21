@@ -181,7 +181,7 @@ export function prepareSuites (
   const result: Suite<Point, GridGraph>[] = []
 
   //scenFile = scenFile.slice(0, 100)
-  scenFile = scenFile.slice(-1)
+  //scenFile = scenFile.slice(-1)
   //scenFile = scenFile.slice(-20)
 
   //const gr = [...graphs.values()][0]!
